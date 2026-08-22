@@ -1,26 +1,329 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --navy: #0a1533;
+  --field-deep: #04102e;
+  --field-mid: #0a2a6b;
+  --field-blue: #0b5fa8;
+  --field-cyan: #0f9bc4;
+  --field-teal: #3fd6d0;
+  --white: #ffffff;
+  --ink: #0a1533;
+  --success: #12a45f;
+  --success-dark: #0b7a4b;
+  --success-dot: #37d392;
+  --danger: #b4341f;
+  --warn-amber: #ffc24a;
+  --coral: #ffb59a;
+  --coral-strong: #ff9f78;
+  --dryer-deep: #2a1602;
+  --dryer-mid: #5c3405;
+  --dryer-brown: #b4690a;
+  --dryer-amber: #e08a16;
+  --dryer-light: #f5c065;
+  --dryer-ink: #8a4e05;
+  --dryer-cream: #ffdfa8;
+  --canvas: #e9e9e6;
+  /* Marketing surfaces: warm paper ground and the deep green used on the
+     WhatsApp band. Both come from Lundrii Home.dc.html. */
+  --paper: #ededea;
+  --ink-green: #04321f;
+  /* Widest the content column goes. The screens are drawn against a 390px
+     phone, so this is room to breathe rather than a licence to stretch. */
+  --app-column: 440px;
+  /* Home indicator / notch, once installed. Zero in a browser tab. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --glass-fill: rgba(255, 255, 255, 0.16);
+  --glass-border: rgba(255, 255, 255, 0.22);
+  --ink-muted: rgba(10, 21, 51, 0.5);
+  --ink-faint: rgba(10, 21, 51, 0.04);
+  --sheet-dimmer: rgba(3, 10, 30, 0.55);
+  --tab-frost: rgba(255, 255, 255, 0.86);
+  --background: var(--canvas);
+  --foreground: var(--white);
 }
 
 @theme inline {
+  --color-navy: var(--navy);
+  --color-field-deep: var(--field-deep);
+  --color-field-mid: var(--field-mid);
+  --color-field-blue: var(--field-blue);
+  --color-field-cyan: var(--field-cyan);
+  --color-field-teal: var(--field-teal);
+  --color-lundrii-white: var(--white);
+  --color-ink: var(--ink);
+  --color-success: var(--success);
+  --color-success-dark: var(--success-dark);
+  --color-success-dot: var(--success-dot);
+  --color-danger: var(--danger);
+  --color-warn-amber: var(--warn-amber);
+  --color-coral: var(--coral);
+  --color-coral-strong: var(--coral-strong);
+  --color-dryer-deep: var(--dryer-deep);
+  --color-dryer-mid: var(--dryer-mid);
+  --color-dryer-brown: var(--dryer-brown);
+  --color-dryer-amber: var(--dryer-amber);
+  --color-dryer-light: var(--dryer-light);
+  --color-dryer-ink: var(--dryer-ink);
+  --color-dryer-cream: var(--dryer-cream);
+  --color-canvas: var(--canvas);
+  --color-paper: var(--paper);
+  --color-ink-green: var(--ink-green);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+    "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-display: var(--font-manrope), Manrope, -apple-system, BlinkMacSystemFont,
+    "Helvetica Neue", Helvetica, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Unlayered rules outrank every @layer utilities declaration, so element
+   defaults must be layered or they silently beat `text-white/70` on links. */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    min-height: 100%;
+    /* Rubber-band overscroll should show the app, not a strip of desk. */
+    background: var(--field-deep);
+    color: var(--white);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    /* The design leaves line-height at `normal` and opts into 1.5 per element.
+       Tailwind preflight forces 1.5 globally, which inflates every single-line
+       text box by ~4px and compounds down the screen. */
+    line-height: normal;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font-family: inherit;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* The app owns the whole window at every size — no desk, no phone mockup.
+   Wide screens keep the gradient bleeding edge to edge and cap only the
+   content, because every screen is laid out against a phone-width viewport. */
+.app-frame {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--field-deep);
+}
+
+/* The gradient layer, full bleed. Separate from the column because a screen's
+   absolutely-placed furniture anchors to `.phone-screen`, and stretching that
+   across a monitor would fling the swipe bars and sheets out to the edges. */
+.app-surface {
+  position: absolute;
+  inset: 0;
+}
+
+/* The column: scroll container, and the positioning context screens anchor to.
+   `inset: 0` keeps its height definite so `min-h-full` still resolves, and
+   `margin-inline: auto` centres it once `max-width` starts to bite. */
+.phone-screen {
+  position: absolute;
+  inset: 0;
+  max-width: var(--app-column);
+  margin-inline: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* Screens set `min-h-full` to fill a short page, which also overrides the
+   automatic minimum size a flex item gets from its content. Without this the
+   column squashes a too-tall screen back down to the viewport instead of
+   scrolling it, and pinned footers land on top of the text. */
+.phone-screen > * {
+  flex-shrink: 0;
+}
+
+/* Chrome that lives outside a screen — tab bar, toasts — but has to line up
+   with the column rather than with the window. */
+.app-column-inset {
+  left: 0;
+  right: 0;
+  max-width: var(--app-column);
+  margin-inline: auto;
+}
+
+.field-gradient {
+  background: linear-gradient(
+    180deg,
+    #04102e 0%,
+    #0a2a6b 34%,
+    #0b5fa8 66%,
+    #0f9bc4 88%,
+    #3fd6d0 100%
+  );
+}
+
+.field-compact {
+  background: linear-gradient(
+    180deg,
+    #04102e 0%,
+    #0a2a6b 40%,
+    #0b5fa8 78%,
+    #0f9bc4 100%
+  );
+}
+
+.dryer-gradient {
+  background: linear-gradient(
+    180deg,
+    #2a1602 0%,
+    #5c3405 34%,
+    #b4690a 68%,
+    #e08a16 90%,
+    #f5c065 100%
+  );
+}
+
+.success-gradient {
+  background: linear-gradient(
+    180deg,
+    #04102e 0%,
+    #073a2e 40%,
+    #0e8a50 76%,
+    #37d392 100%
+  );
+}
+
+.suspended-gradient {
+  background: linear-gradient(
+    180deg,
+    #0b1220 0%,
+    #1b2438 40%,
+    #2c3a57 78%,
+    #3b4e72 100%
+  );
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(26px) saturate(180%);
+  -webkit-backdrop-filter: blur(26px) saturate(180%);
+}
+
+.frost-tab {
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: 0 14px 34px -12px rgba(2, 10, 34, 0.42);
+}
+
+@keyframes scrIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sheetUp {
+  from {
+    transform: translateY(110%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes popIn {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  62% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes nudge {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+}
+
+.anim-scr-in {
+  animation: scrIn 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.anim-sheet-up {
+  animation: sheetUp 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.anim-pop-in {
+  animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.anim-rise {
+  animation: rise 0.4s ease;
+}
+
+.anim-nudge {
+  animation: nudge 2.4s ease-in-out infinite;
+}
+
+input[type="file"] {
+  font-size: 13px;
 }

@@ -1,0 +1,630 @@
+{
+  "meta": {
+    "instituteName": "Goa Institute of Management",
+    "allowedDomains": ["@gim.ac.in", "@student.gim.ac.in"],
+    "nowHour": 9,
+    "blockedHours": [15, 16],
+    "quotaLimit": 3,
+    "cooldownHours": 0,
+    "advanceWindowDays": 7,
+    "lateCancelCutoffHours": 6,
+    "brand": {
+      "navy": "#0A1533",
+      "fieldDeep": "#04102E",
+      "fieldMid": "#0A2A6B",
+      "fieldBlue": "#0B5FA8",
+      "fieldCyan": "#0F9BC4",
+      "fieldTeal": "#3FD6D0",
+      "success": "#12A45F",
+      "successDark": "#0B7A4B",
+      "successDot": "#37D392",
+      "danger": "#B4341F",
+      "warnAmber": "#FFC24A",
+      "coral": "#FFB59A",
+      "coralStrong": "#FF9F78",
+      "dryerDeep": "#2A1602",
+      "dryerMid": "#5C3405",
+      "dryerBrown": "#B4690A",
+      "dryerAmber": "#E08A16",
+      "dryerLight": "#F5C065",
+      "dryerInk": "#8A4E05",
+      "dryerCream": "#FFDFA8",
+      "white": "#FFFFFF",
+      "ink": "#0A1533"
+    }
+  },
+  "hostels": [
+    {
+      "id": "h1",
+      "name": "Boys Hostel 1",
+      "gender": "male",
+      "isHome": true
+    },
+    {
+      "id": "h2",
+      "name": "Boys Hostel 2",
+      "gender": "male",
+      "isHome": false
+    },
+    {
+      "id": "h3",
+      "name": "PG Block",
+      "gender": "male",
+      "isHome": false
+    }
+  ],
+  "machines": [
+    {
+      "id": "m1",
+      "name": "3rd Floor · A Wing",
+      "kind": "washer",
+      "status": "free",
+      "hostelId": "h1",
+      "subtitle": "Free until 14:00 · 9 slots open today",
+      "takenHours": [11, 12, 16, 19, 21],
+      "runningHour": 9
+    },
+    {
+      "id": "m2",
+      "name": "2nd Floor · A Wing",
+      "kind": "washer",
+      "status": "free",
+      "hostelId": "h1",
+      "subtitle": "Free until 11:00 · 6 slots open today",
+      "takenHours": [11, 12, 13, 17, 18, 20, 22],
+      "runningHour": -1
+    },
+    {
+      "id": "m3",
+      "name": "2nd Floor · C Wing",
+      "kind": "washer",
+      "status": "busy",
+      "hostelId": "h1",
+      "subtitle": "Frees at 11:00 · 4 slots open today",
+      "takenHours": [10, 12, 14, 16, 17, 19, 20, 22],
+      "runningHour": 9
+    },
+    {
+      "id": "m4",
+      "name": "Ground Floor · B Wing",
+      "kind": "washer",
+      "status": "free",
+      "hostelId": "h1",
+      "subtitle": "Free until 16:00 · 11 slots open today",
+      "takenHours": [16, 17, 21],
+      "runningHour": -1
+    },
+    {
+      "id": "m5",
+      "name": "4th Floor · B Wing",
+      "kind": "washer",
+      "status": "offline",
+      "hostelId": "h1",
+      "subtitle": "Taken out of service by the committee",
+      "takenHours": [],
+      "runningHour": -1
+    },
+    {
+      "id": "d1",
+      "name": "Ground Floor · B Wing",
+      "kind": "dryer",
+      "status": "free",
+      "hostelId": "h1",
+      "subtitle": "Free until 15:00 · 12 slots open today",
+      "takenHours": [15, 18, 20],
+      "runningHour": -1
+    },
+    {
+      "id": "d2",
+      "name": "2nd Floor · C Wing",
+      "kind": "dryer",
+      "status": "free",
+      "hostelId": "h1",
+      "subtitle": "Free until 17:00 · 10 slots open today",
+      "takenHours": [17, 19, 21],
+      "runningHour": -1
+    }
+  ],
+  "slots": {
+    "m1": [
+      { "hour": 0, "state": "past" },
+      { "hour": 1, "state": "past" },
+      { "hour": 2, "state": "past" },
+      { "hour": 3, "state": "past" },
+      { "hour": 4, "state": "past" },
+      { "hour": 5, "state": "past" },
+      { "hour": 6, "state": "past" },
+      { "hour": 7, "state": "past" },
+      { "hour": 8, "state": "past" },
+      { "hour": 9, "state": "running" },
+      { "hour": 10, "state": "free" },
+      { "hour": 11, "state": "taken" },
+      { "hour": 12, "state": "taken" },
+      { "hour": 13, "state": "free" },
+      { "hour": 14, "state": "free" },
+      { "hour": 15, "state": "blocked" },
+      { "hour": 16, "state": "taken" },
+      { "hour": 17, "state": "free" },
+      { "hour": 18, "state": "free" },
+      { "hour": 19, "state": "taken" },
+      { "hour": 20, "state": "free" },
+      { "hour": 21, "state": "taken" },
+      { "hour": 22, "state": "free" },
+      { "hour": 23, "state": "free" }
+    ],
+    "m2": [
+      { "hour": 0, "state": "past" },
+      { "hour": 1, "state": "past" },
+      { "hour": 2, "state": "past" },
+      { "hour": 3, "state": "past" },
+      { "hour": 4, "state": "past" },
+      { "hour": 5, "state": "past" },
+      { "hour": 6, "state": "past" },
+      { "hour": 7, "state": "past" },
+      { "hour": 8, "state": "past" },
+      { "hour": 9, "state": "free" },
+      { "hour": 10, "state": "free" },
+      { "hour": 11, "state": "taken" },
+      { "hour": 12, "state": "taken" },
+      { "hour": 13, "state": "taken" },
+      { "hour": 14, "state": "free" },
+      { "hour": 15, "state": "blocked" },
+      { "hour": 16, "state": "blocked" },
+      { "hour": 17, "state": "taken" },
+      { "hour": 18, "state": "taken" },
+      { "hour": 19, "state": "free" },
+      { "hour": 20, "state": "taken" },
+      { "hour": 21, "state": "free" },
+      { "hour": 22, "state": "taken" },
+      { "hour": 23, "state": "free" }
+    ],
+    "m3": [
+      { "hour": 0, "state": "past" },
+      { "hour": 1, "state": "past" },
+      { "hour": 2, "state": "past" },
+      { "hour": 3, "state": "past" },
+      { "hour": 4, "state": "past" },
+      { "hour": 5, "state": "past" },
+      { "hour": 6, "state": "past" },
+      { "hour": 7, "state": "past" },
+      { "hour": 8, "state": "past" },
+      { "hour": 9, "state": "running" },
+      { "hour": 10, "state": "taken" },
+      { "hour": 11, "state": "free" },
+      { "hour": 12, "state": "taken" },
+      { "hour": 13, "state": "mine" },
+      { "hour": 14, "state": "taken" },
+      { "hour": 15, "state": "blocked" },
+      { "hour": 16, "state": "taken" },
+      { "hour": 17, "state": "taken" },
+      { "hour": 18, "state": "free" },
+      { "hour": 19, "state": "taken" },
+      { "hour": 20, "state": "taken" },
+      { "hour": 21, "state": "free" },
+      { "hour": 22, "state": "taken" },
+      { "hour": 23, "state": "free" }
+    ],
+    "m4": [
+      { "hour": 0, "state": "past" },
+      { "hour": 1, "state": "past" },
+      { "hour": 2, "state": "past" },
+      { "hour": 3, "state": "past" },
+      { "hour": 4, "state": "past" },
+      { "hour": 5, "state": "past" },
+      { "hour": 6, "state": "past" },
+      { "hour": 7, "state": "past" },
+      { "hour": 8, "state": "past" },
+      { "hour": 9, "state": "free" },
+      { "hour": 10, "state": "free" },
+      { "hour": 11, "state": "free" },
+      { "hour": 12, "state": "free" },
+      { "hour": 13, "state": "free" },
+      { "hour": 14, "state": "free" },
+      { "hour": 15, "state": "blocked" },
+      { "hour": 16, "state": "taken" },
+      { "hour": 17, "state": "taken" },
+      { "hour": 18, "state": "free" },
+      { "hour": 19, "state": "free" },
+      { "hour": 20, "state": "free" },
+      { "hour": 21, "state": "taken" },
+      { "hour": 22, "state": "free" },
+      { "hour": 23, "state": "free" }
+    ],
+    "m5": [
+      { "hour": 0, "state": "offline" },
+      { "hour": 1, "state": "offline" },
+      { "hour": 2, "state": "offline" },
+      { "hour": 3, "state": "offline" },
+      { "hour": 4, "state": "offline" },
+      { "hour": 5, "state": "offline" },
+      { "hour": 6, "state": "offline" },
+      { "hour": 7, "state": "offline" },
+      { "hour": 8, "state": "offline" },
+      { "hour": 9, "state": "offline" },
+      { "hour": 10, "state": "offline" },
+      { "hour": 11, "state": "offline" },
+      { "hour": 12, "state": "offline" },
+      { "hour": 13, "state": "offline" },
+      { "hour": 14, "state": "offline" },
+      { "hour": 15, "state": "offline" },
+      { "hour": 16, "state": "offline" },
+      { "hour": 17, "state": "offline" },
+      { "hour": 18, "state": "offline" },
+      { "hour": 19, "state": "offline" },
+      { "hour": 20, "state": "offline" },
+      { "hour": 21, "state": "offline" },
+      { "hour": 22, "state": "offline" },
+      { "hour": 23, "state": "offline" }
+    ],
+    "d1": [
+      { "hour": 0, "state": "past" },
+      { "hour": 1, "state": "past" },
+      { "hour": 2, "state": "past" },
+      { "hour": 3, "state": "past" },
+      { "hour": 4, "state": "past" },
+      { "hour": 5, "state": "past" },
+      { "hour": 6, "state": "past" },
+      { "hour": 7, "state": "past" },
+      { "hour": 8, "state": "past" },
+      { "hour": 9, "state": "free" },
+      { "hour": 10, "state": "free" },
+      { "hour": 11, "state": "free" },
+      { "hour": 12, "state": "free" },
+      { "hour": 13, "state": "free" },
+      { "hour": 14, "state": "free" },
+      { "hour": 15, "state": "taken" },
+      { "hour": 16, "state": "free" },
+      { "hour": 17, "state": "free" },
+      { "hour": 18, "state": "taken" },
+      { "hour": 19, "state": "free" },
+      { "hour": 20, "state": "taken" },
+      { "hour": 21, "state": "free" },
+      { "hour": 22, "state": "free" },
+      { "hour": 23, "state": "free" }
+    ],
+    "d2": [
+      { "hour": 0, "state": "past" },
+      { "hour": 1, "state": "past" },
+      { "hour": 2, "state": "past" },
+      { "hour": 3, "state": "past" },
+      { "hour": 4, "state": "past" },
+      { "hour": 5, "state": "past" },
+      { "hour": 6, "state": "past" },
+      { "hour": 7, "state": "past" },
+      { "hour": 8, "state": "past" },
+      { "hour": 9, "state": "free" },
+      { "hour": 10, "state": "free" },
+      { "hour": 11, "state": "free" },
+      { "hour": 12, "state": "free" },
+      { "hour": 13, "state": "free" },
+      { "hour": 14, "state": "free" },
+      { "hour": 15, "state": "free" },
+      { "hour": 16, "state": "free" },
+      { "hour": 17, "state": "taken" },
+      { "hour": 18, "state": "free" },
+      { "hour": 19, "state": "taken" },
+      { "hour": 20, "state": "free" },
+      { "hour": 21, "state": "taken" },
+      { "hour": 22, "state": "free" },
+      { "hour": 23, "state": "free" }
+    ]
+  },
+  "profile": {
+    "name": "Aarav Mehta",
+    "email": "aarav.mehta@gim.ac.in",
+    "phone": "+91 98220 41127",
+    "hostelId": "h1",
+    "hostelName": "Boys Hostel 1",
+    "floor": "3rd Floor",
+    "gender": "male",
+    "quota": {
+      "used": 2,
+      "limit": 3,
+      "resetLabel": "resets Mon 4 Aug"
+    },
+    "strikes": [],
+    "suspensionEnds": null
+  },
+  "bookings": {
+    "upcoming": [
+      {
+        "id": 1,
+        "machineId": "m3",
+        "machineName": "2nd Floor · C Wing",
+        "kind": "washer",
+        "dayLabel": "Today",
+        "hour": 13,
+        "isLateCancel": true,
+        "hostelName": "Boys Hostel 1"
+      },
+      {
+        "id": 2,
+        "machineId": "d1",
+        "machineName": "Ground Floor · B Wing",
+        "kind": "dryer",
+        "dayLabel": "Saturday 1 August",
+        "hour": 8,
+        "isLateCancel": false,
+        "hostelName": "Boys Hostel 1"
+      }
+    ],
+    "past": [
+      {
+        "id": 101,
+        "machineId": "m1",
+        "machineName": "3rd Floor · A Wing",
+        "kind": "washer",
+        "dayLabel": "Sun 27 Jul",
+        "hour": 18,
+        "isLateCancel": false,
+        "hostelName": null
+      },
+      {
+        "id": 102,
+        "machineId": "d1",
+        "machineName": "Ground Floor · B Wing",
+        "kind": "dryer",
+        "dayLabel": "Sun 27 Jul",
+        "hour": 20,
+        "isLateCancel": false,
+        "hostelName": null
+      },
+      {
+        "id": 103,
+        "machineId": "m2",
+        "machineName": "2nd Floor · A Wing",
+        "kind": "washer",
+        "dayLabel": "Wed 23 Jul",
+        "hour": 11,
+        "isLateCancel": false,
+        "hostelName": null
+      }
+    ]
+  },
+  "rejectPresets": [
+    {
+      "id": "need_slot",
+      "label": "I need this slot myself",
+      "allowsCustomNote": false
+    },
+    {
+      "id": "day_bad",
+      "label": "Friday doesn't work for me",
+      "allowsCustomNote": false
+    },
+    {
+      "id": "say_nothing",
+      "label": "Say nothing",
+      "allowsCustomNote": true
+    }
+  ],
+  "exchanges": [
+    {
+      "id": 1,
+      "initials": "PK",
+      "name": "Priya Kulkarni",
+      "title": "Priya Kulkarni wants a swap",
+      "timeLabel": "Sent 12 minutes ago",
+      "theyTake": "Today 13:00",
+      "theyTakeSub": "2nd Floor · C Wing",
+      "youGet": "Fri 18:00",
+      "youGetSub": "3rd Floor · A Wing",
+      "approveLabel": "Approve swap",
+      "kind": "swap",
+      "peerHostel": "Boys Hostel 1",
+      "askedAgoLabel": "asked 12 minutes ago",
+      "expiresLabel": "Expires in 3h 20m · when the slot starts",
+      "screenTitle": "Swap request",
+      "giveUp": {
+        "hour": 13,
+        "dayLabel": "Today",
+        "location": "2nd Floor · C Wing",
+        "machineId": "m3",
+        "kind": "washer"
+      },
+      "getSlot": {
+        "hour": 18,
+        "dayLabel": "Friday 31 July",
+        "location": "3rd Floor · A Wing",
+        "machineId": "m1",
+        "kind": "washer"
+      },
+      "ruleChecks": [
+        {
+          "label": "Both slots still exist and are unchanged",
+          "passed": true
+        },
+        {
+          "label": "Neither of you goes over the weekly count",
+          "passed": true
+        }
+      ],
+      "ruleChecksFooter": "If any of these changes before you decide, the swap fails and you're both told why.",
+      "peerNote": null,
+      "irreversibleNotes": [],
+      "approveConfirmTitle": "Swap with Priya?",
+      "approveConfirmBody": "Both bookings change hands at once. Neither of you can reverse it afterwards — you'd have to agree a new swap.",
+      "rejectTitle": "Reject Priya's swap",
+      "rejectBody": "You keep today's 13:00. A short reason helps, but you can skip it.",
+      "rejectOptionIds": ["need_slot", "day_bad", "say_nothing"]
+    },
+    {
+      "id": 2,
+      "initials": "AN",
+      "name": "Ananya Nair",
+      "title": "Ananya Nair asked for a slot",
+      "timeLabel": "Sent 40 minutes ago",
+      "theyTake": "Sat 08:00",
+      "theyTakeSub": "Ground Floor · B Wing",
+      "youGet": "Nothing",
+      "youGetSub": "Straight request",
+      "approveLabel": "Give her the slot",
+      "kind": "request",
+      "peerHostel": "Boys Hostel 1",
+      "askedAgoLabel": "asked 40 minutes ago",
+      "expiresLabel": null,
+      "screenTitle": "Slot request",
+      "giveUp": {
+        "hour": 8,
+        "dayLabel": "Saturday 1 August",
+        "location": "Ground Floor · B Wing",
+        "machineId": "d1",
+        "kind": "dryer",
+        "rangeLabel": "08:00 – 09:00"
+      },
+      "getSlot": null,
+      "ruleChecks": [],
+      "ruleChecksFooter": null,
+      "peerNote": "Placement interview on Monday and this is the only dryer slot before it. Happy to take a later wash instead.",
+      "irreversibleNotes": [
+        "Ananya becomes the holder immediately",
+        "This can't be undone once you hand it over"
+      ],
+      "approveConfirmTitle": "Give Ananya the slot?",
+      "approveConfirmBody": "You're handing over Sat 08:00 with nothing in return. Rejections are private; approvals are final.",
+      "rejectTitle": "Reject Ananya's ask",
+      "rejectBody": "You keep the dryer slot. A reason is optional.",
+      "rejectOptionIds": ["need_slot", "day_bad", "say_nothing"]
+    }
+  ],
+  "sentExchanges": [
+    {
+      "id": 101,
+      "peerName": "Rohan Shetty",
+      "peerInitials": "RS",
+      "waitingTitle": "Waiting on Rohan",
+      "waitingBody": "He can accept until the slot starts. Nothing is reserved for you in the meantime.",
+      "peerSlotSummary": "Today 11:00 · 3rd Floor · A Wing",
+      "statusLabel": "Pending",
+      "kind": "swap",
+      "canWithdraw": true,
+      "offered": {
+        "hour": 13,
+        "dayLabel": "Today",
+        "location": "2nd Floor · C Wing",
+        "machineId": "m3",
+        "kind": "washer"
+      },
+      "wanted": {
+        "hour": 11,
+        "dayLabel": "Today",
+        "location": "3rd Floor · A Wing",
+        "machineId": "m1",
+        "kind": "washer"
+      },
+      "timeline": [
+        {
+          "title": "You offered a swap",
+          "timeLabel": "Today 09:41 · your 13:00 for his 11:00",
+          "pending": false
+        },
+        {
+          "title": "Rohan was notified",
+          "timeLabel": "Today 09:41",
+          "pending": false
+        },
+        {
+          "title": "His decision",
+          "timeLabel": "Expires at 11:00",
+          "pending": true
+        }
+      ],
+      "withdrawHint": "Withdrawing is silent — Rohan just stops seeing the request. Your 13:00 booking is unaffected either way."
+    }
+  ],
+  "swapDone": {
+    "peerName": "Priya",
+    "headline": "Slots swapped",
+    "subtitle": "Priya has been told. Your bookings are already updated.",
+    "quotaNote": "Your weekly count didn't change — a swap isn't a new wash.",
+    "gained": {
+      "hour": 18,
+      "dayLabel": "Friday 31 July",
+      "location": "3rd Floor · A Wing",
+      "machineId": "m1",
+      "kind": "washer",
+      "footnote": "now yours"
+    },
+    "lost": {
+      "hour": 13,
+      "dayLabel": "Today",
+      "location": "2nd Floor · C Wing",
+      "machineId": "m3",
+      "kind": "washer",
+      "footnote": "Priya's now"
+    }
+  },
+  "tickets": [
+    {
+      "id": 2,
+      "number": "#431",
+      "title": "Machine not working",
+      "note": "Made a grinding noise then stopped mid-cycle. Water still inside.",
+      "kind": "maintenance",
+      "status": "open",
+      "timeLabel": "2 hours ago",
+      "createdAt": "2026-08-11T07:52:00",
+      "updatedAt": "2026-08-11T07:52:00",
+      "resolvedAt": null,
+      "machineId": "m1",
+      "machineName": "3rd Floor · A Wing",
+      "photoUrl": "mock://ticket-431",
+      "committeeNote": null,
+      "statusDetail": "In review · raised today 09:52"
+    }
+  ],
+  "ticketCompose": {
+    "maintenanceDraft": {
+      "machineId": "m1",
+      "machineName": "3rd Floor · A Wing",
+      "note": "Made a grinding noise then stopped mid-cycle. Water still inside."
+    },
+    "raisedResult": {
+      "number": "#431",
+      "subtitle": "The hostel committee has it, with the machine and your note attached.",
+      "nextSteps": [
+        "A committee member reviews it — usually the same day.",
+        "If they take the machine offline, affected bookings are released and everyone is notified.",
+        "You'll see the outcome here. Only the committee can close a ticket."
+      ],
+      "bookingStayNote": null
+    }
+  },
+  "notifications": [
+    {
+      "id": 1,
+      "title": "Priya Kulkarni offered a swap",
+      "body": "Her Fri 18:00 for your today 13:00.",
+      "timeLabel": "12 min ago",
+      "kind": "success"
+    },
+    {
+      "id": 2,
+      "title": "Your wash starts in 30 minutes",
+      "body": "2nd Floor · C Wing, 13:00.",
+      "timeLabel": "1 hour ago",
+      "kind": "success"
+    },
+    {
+      "id": 3,
+      "title": "Booking cancelled — machine offline",
+      "body": "4th Floor · B Wing is out of service. Your Fri 19:00 wash was released.",
+      "timeLabel": "3 hours ago · Find another slot",
+      "kind": "danger"
+    },
+    {
+      "id": 4,
+      "title": "Ticket #418 resolved",
+      "body": "The committee marked the machine working again.",
+      "timeLabel": "Yesterday",
+      "kind": "info"
+    },
+    {
+      "id": 5,
+      "title": "Booking confirmed",
+      "body": "Ground Floor · B Wing dryer, Sat 08:00.",
+      "timeLabel": "Mon",
+      "kind": "info"
+    }
+  ]
+}
