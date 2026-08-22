@@ -230,7 +230,6 @@ export type SignupHostelDto = {
   gender: "male" | "female";
   instituteId: string;
   instituteName: string;
-  floors: string[];
 };
 
 export type MeDto = {
@@ -524,7 +523,6 @@ export const api = {
       password: string;
       phone: string;
       hostelId: string;
-      floor: string;
       whatsapp_opt_in?: boolean;
     }) =>
       request<{ id?: string; emailVerified?: boolean }>("/auth/register", {
@@ -589,7 +587,6 @@ export const api = {
       phone?: string;
       whatsappOptIn?: boolean;
       hostelId?: string;
-      floor?: string;
     }) => request<MeDto>("/me", { method: "PATCH", body }),
     hostels: () => list<HostelDto>("/me/hostels"),
     institute: () => request<InstituteDto>("/me/institute"),

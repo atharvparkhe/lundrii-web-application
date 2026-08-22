@@ -253,7 +253,7 @@ export function BookScreen() {
   );
 }
 
-/** Deep link: remember this machine/floor, then open the Book schedule. */
+/** Deep link: remember this machine, then open the Book schedule. */
 export function DayScreen() {
   const app = useLundrii();
   const router = useRouter();

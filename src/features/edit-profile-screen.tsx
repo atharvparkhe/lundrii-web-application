@@ -34,18 +34,14 @@ export function EditProfileScreen() {
   const [name, setName] = useState(profile.name);
   const [phone, setPhone] = useState(profile.phone);
   const [hostelId, setHostelId] = useState(profile.hostelId);
-  const [floor, setFloor] = useState(profile.floor);
   const [whatsapp, setWhatsapp] = useState(profile.whatsappOptIn);
   const [hostels, setHostels] = useState<SignupHostelDto[]>([]);
   const [showErrors, setShowErrors] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const selectedHostel = hostels.find((h) => h.id === hostelId) ?? null;
-  const floors = selectedHostel?.floors ?? [];
   const nameMissing = !name.trim();
   const phoneMissing = !phone.trim();
   const hostelMissing = !hostelId;
-  const floorMissing = !floor;
 
   useEffect(() => {
     let cancelled = false;
@@ -65,13 +61,8 @@ export function EditProfileScreen() {
   useEffect(() => {
     if (hostelId && hostels.length > 0 && !hostels.some((h) => h.id === hostelId)) {
       setHostelId("");
-      setFloor("");
     }
   }, [hostels, hostelId]);
-
-  useEffect(() => {
-    if (floor && floors.length > 0 && !floors.includes(floor)) setFloor("");
-  }, [floors, floor]);
 
   async function save() {
     setShowErrors(true);
@@ -87,10 +78,6 @@ export function EditProfileScreen() {
       app.showToast("Select your hostel.", "warn");
       return;
     }
-    if (floorMissing) {
-      app.showToast("Select your floor.", "warn");
-      return;
-    }
 
     setSaving(true);
     try {
@@ -99,7 +86,6 @@ export function EditProfileScreen() {
         phone: phone.trim(),
         whatsappOptIn: whatsapp,
         hostelId,
-        floor,
       });
       app.applyMe(updated);
       const homeChanged = hostelId !== profile.hostelId;
@@ -158,27 +144,12 @@ export function EditProfileScreen() {
             status={showErrors && hostelMissing ? "bad" : "plain"}
             onChange={(e) => {
               setHostelId(e.target.value);
-              setFloor("");
             }}
           >
             <option value="">Select hostel</option>
             {hostels.map((h) => (
               <option key={h.id} value={h.id}>
                 {h.name}
-              </option>
-            ))}
-          </InkSelect>
-          <InkSelect
-            label="FLOOR"
-            value={floor}
-            disabled={!hostelId}
-            status={showErrors && floorMissing ? "bad" : "plain"}
-            onChange={(e) => setFloor(e.target.value)}
-          >
-            <option value="">{hostelId ? "Select floor" : "Pick a hostel first"}</option>
-            {floors.map((f) => (
-              <option key={f} value={f}>
-                {f}
               </option>
             ))}
           </InkSelect>

@@ -95,7 +95,7 @@ export function FloorTrigger({
     >
       <div>
         <div className="text-[10px] font-semibold tracking-[0.06em] text-white/55">
-          FLOOR
+          MACHINE
         </div>
         <div className="mt-0.5 text-[14.5px] font-[650] text-white">
           {machine?.name ?? "No machines yet"}
@@ -196,9 +196,9 @@ export function FloorPicker({
   return (
     <Overlay open={open} onClose={onClose}>
       <Sheet>
-        <div className="text-[20px] font-bold tracking-[-0.02em]">Choose a floor</div>
+        <div className="text-[20px] font-bold tracking-[-0.02em]">Choose a machine</div>
         <p className="mt-1.5 text-[13px] leading-snug text-navy/50">
-          {hostelName} · one machine per floor and wing.
+          {hostelName} · only machines in this hostel.
         </p>
         <div className="mt-4 flex flex-col gap-[9px]">
           {machines.map((m) => (

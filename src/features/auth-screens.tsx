@@ -266,14 +266,11 @@ export function SignUpScreen() {
   const [password, setPassword] = useState("");
   const [whatsapp, setWhatsapp] = useState(app.auth.whatsappOptIn);
   const [hostelId, setHostelId] = useState("");
-  const [floor, setFloor] = useState("");
   const [hostels, setHostels] = useState<SignupHostelDto[]>([]);
   const [busy, setBusy] = useState(false);
   const domainOk = isAllowedDomain(email);
   const emailStatus = email.trim() ? (domainOk ? "ok" : "bad") : "plain";
   const strength = useMemo(() => strengthBars(password), [password]);
-  const selectedHostel = hostels.find((h) => h.id === hostelId) ?? null;
-  const floors = selectedHostel?.floors ?? [];
 
   useEffect(() => {
     let cancelled = false;
@@ -295,13 +292,8 @@ export function SignUpScreen() {
   useEffect(() => {
     if (hostelId && !hostels.some((h) => h.id === hostelId)) {
       setHostelId("");
-      setFloor("");
     }
   }, [hostels, hostelId]);
-
-  useEffect(() => {
-    if (floor && !floors.includes(floor)) setFloor("");
-  }, [floors, floor]);
 
   function persist() {
     app.rememberDraft({
@@ -335,10 +327,6 @@ export function SignUpScreen() {
       app.showToast("Select your hostel.", "warn");
       return;
     }
-    if (!floor) {
-      app.showToast("Select your floor.", "warn");
-      return;
-    }
     if (busy) return;
     setBusy(true);
     const res = await app.signUp({
@@ -347,7 +335,6 @@ export function SignUpScreen() {
       phone: phone.trim(),
       password,
       hostelId,
-      floor,
       whatsappOptIn: whatsapp,
     });
     setBusy(false);
@@ -372,7 +359,7 @@ export function SignUpScreen() {
           Create your Lundrii account
         </h1>
         <p className="mt-[7px] text-[12.5px] leading-relaxed text-navy/50">
-          Pick the hostel and floor you live on so Book opens on your machines.
+          Pick the hostel you live in. You can book machines in any hostel you are allowed to use.
         </p>
         <div className="mt-[18px] flex flex-col gap-2.5">
           <InkField label="FULL NAME" value={name} onChange={(e) => setName(e.target.value)} />
@@ -411,26 +398,12 @@ export function SignUpScreen() {
             value={hostelId}
             onChange={(e) => {
               setHostelId(e.target.value);
-              setFloor("");
             }}
           >
             <option value="">Select hostel</option>
             {hostels.map((h) => (
               <option key={h.id} value={h.id}>
                 {h.name}
-              </option>
-            ))}
-          </InkSelect>
-          <InkSelect
-            label="FLOOR"
-            value={floor}
-            disabled={!hostelId}
-            onChange={(e) => setFloor(e.target.value)}
-          >
-            <option value="">{hostelId ? "Select floor" : "Pick a hostel first"}</option>
-            {floors.map((f) => (
-              <option key={f} value={f}>
-                {f}
               </option>
             ))}
           </InkSelect>

@@ -247,7 +247,7 @@ function initialState(): State {
     },
     demoMode: "normal",
     selectedHostelId: "",
-    selectedFloor: profile.floor ?? "3rd Floor",
+    selectedFloor: "",
     profile,
     hostels: [],
     machines: [],
@@ -404,7 +404,6 @@ export type LundriiStore = {
     password: string;
     phone: string;
     hostelId: string;
-    floor: string;
     whatsappOptIn?: boolean;
   }) => Promise<{ ok: true } | { ok: false; error: string }>;
   signOut: () => void;
@@ -589,9 +588,6 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
           days,
           profile: mapProfile(me),
           selectedHostelId: catalog.activeHostel,
-          ...(hostelId && me.hostelId && hostelId !== me.hostelId
-            ? {}
-            : { selectedFloor: me.floor ?? "" }),
           hostels: catalog.hostels,
           machines: catalog.machines,
           upcoming: upcomingDtos.map((b) => mapBooking(b, days)),
@@ -647,7 +643,6 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
       type: "setState",
       patch: {
         profile: mapProfile(me),
-        selectedFloor: me.floor ?? "",
       },
     });
   }, []);
@@ -849,7 +844,6 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
           password: input.password,
           phone: input.phone,
           hostelId: input.hostelId,
-          floor: input.floor,
           whatsapp_opt_in: input.whatsappOptIn ?? false,
         });
         dispatch({
@@ -892,6 +886,7 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
             machines,
             slotCache: {},
             scheduleError,
+            selectedFloor: "",
           },
         });
       })();
@@ -902,9 +897,8 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
     getHostels: () => state.hostels,
     getMachines: (hostelId) => {
       const id = hostelId ?? state.selectedHostelId;
-      if (!id) return state.machines;
-      const matched = state.machines.filter((m) => m.hostelId === id);
-      return matched.length ? matched : state.machines;
+      if (!id) return [];
+      return state.machines.filter((m) => m.hostelId === id);
     },
     getSlots,
     hasLoadedSlots,

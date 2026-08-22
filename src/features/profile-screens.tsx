@@ -303,7 +303,7 @@ export function ProfileScreen() {
           <div className="mt-5 flex flex-col gap-2">
             <Row
               label="Edit profile"
-              value="Name, phone, home hostel, floor"
+              value="Name, phone, home hostel"
               onClick={() => router.push("/profile/edit")}
             />
             {app.signedIn && app.hostels.length > 0 ? (

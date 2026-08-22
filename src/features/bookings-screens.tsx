@@ -142,7 +142,7 @@ export function BookingsScreen() {
               </div>
               <div className="mt-5 text-[20px] font-bold">Nothing booked yet</div>
               <div className="mt-[7px] text-[13px] leading-[1.5] text-navy/50">
-                Two washers are free right now on your floor.
+                Two washers are free right now in your hostel.
               </div>
               <button
                 type="button"
