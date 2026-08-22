@@ -689,8 +689,6 @@ export const api = {
           machineId: body.machineId,
         },
       });
-        },
-      });
     },
   },
 

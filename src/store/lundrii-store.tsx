@@ -483,6 +483,7 @@ function emptyLiveLists(): Partial<State> {
       name: "",
       email: "",
       phone: "",
+      whatsappOptIn: false,
       hostelId: "",
       hostelName: "",
       floor: "",
