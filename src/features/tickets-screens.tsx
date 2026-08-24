@@ -56,6 +56,10 @@ function ProtoHeader({ title, backHref }: { title: string; backHref: string }) {
 
 export function TicketsListScreen() {
   const app = useLundrii();
+
+  useEffect(() => {
+    if (app.live) void app.loadTickets();
+  }, [app.live, app.loadTickets]);
   return (
     <Phone variant="compact">
       <ProtoHeader title="Your tickets" backHref="/profile" />

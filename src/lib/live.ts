@@ -320,6 +320,7 @@ export function mapProfile(dto: MeDto): StudentProfile {
       used: dto.quota.used,
       limit: dto.quota.limit,
       dryerUsed: dto.quota.dryerUsed ?? 0,
+      dryerLimit: dto.quota.dryerLimit ?? (dto.quota.limit || 0),
       resetLabel: dto.quota.resetsAt
         ? `resets ${shortDate(dto.quota.resetsAt)}`
         : "resets Monday",

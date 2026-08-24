@@ -863,6 +863,7 @@
       "used": 2,
       "limit": 3,
       "dryerUsed": 1,
+      "dryerLimit": 3,
       "resetLabel": "resets Mon 4 Aug"
     },
     "strikes": [],

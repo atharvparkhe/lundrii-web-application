@@ -66,15 +66,19 @@ export function HomeScreen() {
   const app = useLundrii();
   const router = useRouter();
   const [hostelOpen, setHostelOpen] = useState(false);
-  const washers = app.getMachines().filter((m) => m.kind === "washer");
-  const freeWashers = washers.filter((m) => m.status === "free");
+  const freeWashers = app.getMachines().filter((m) => m.kind === "washer" && m.status === "free");
   const upcoming = app.upcoming.slice(0, 2);
+  const incomingCount = app.pendingIncomingExchangeCount;
 
   const liveUnverified = app.live && !app.profile.emailVerified;
   const liveSuspended = app.live && app.profile.suspended;
   const banner =
     liveUnverified
-      ? { title: "Email not confirmed yet", body: "Tap the link we emailed you to start booking.", href: null as string | null }
+      ? {
+          title: "Email not confirmed yet",
+          body: "Tap the link we emailed you to start booking.",
+          href: "/auth/verify" as string | null,
+        }
       : liveSuspended
         ? {
             title: app.profile.suspensionEnds
@@ -84,17 +88,21 @@ export function HomeScreen() {
             href: null,
           }
         : app.demoMode === "unverified" && !app.live
-      ? { title: "Email not confirmed yet", body: "Tap the link we emailed you to start booking.", href: null }
+      ? {
+          title: "Email not confirmed yet",
+          body: "Tap the link we emailed you to start booking.",
+          href: "/auth/verify",
+        }
       : app.demoMode === "suspended" && !app.live
         ? { title: "Booking paused until 6 Aug", body: "Applied by the committee after ticket #427. You can still browse.", href: null }
         : app.demoMode === "offline" && !app.live
           ? { title: "You're offline", body: "Showing what we knew at 09:12. Slots may already be gone.", href: null }
-          : app.exchanges.length > 0
+          : incomingCount > 0
             ? {
                 title:
-                  app.exchanges.length === 1
+                  incomingCount === 1
                     ? "1 exchange request waiting"
-                    : `${app.exchanges.length} exchange requests waiting`,
+                    : `${incomingCount} exchange requests waiting`,
                 body: "Open Bookings to approve or reject.",
                 href: "/bookings",
               }
@@ -152,17 +160,11 @@ export function HomeScreen() {
             <div className="text-[14px] text-white/62">Washers free right now</div>
             <div className="mt-0.5 flex items-baseline justify-center gap-0.5">
               <span className="text-[74px] font-semibold leading-[1.05] tracking-[-0.035em]">
-                {freeWashers.length}
+                {app.washersFree}
               </span>
               <span className="text-[74px] font-semibold tracking-[-0.035em] text-white/45">
-                /{washers.length}
+                /{app.washersTotal}
               </span>
-            </div>
-            <div className="mt-1 inline-flex items-center gap-[7px] rounded-[20px] border border-white/22 bg-white/16 px-[15px] py-[7px] text-[13px] font-medium">
-              <span className="opacity-70">
-                {app.quotaLeft} of {app.quotaLimit}
-              </span>
-              washes left this week
             </div>
           </div>
 

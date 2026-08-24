@@ -244,7 +244,7 @@ export type MeDto = {
   suspended: boolean;
   suspensionEnds: string | null;
   suspensionReason: string | null;
-  quota: { used: number; limit: number; dryerUsed: number; windowDays: number; resetsAt: string | null };
+  quota: { used: number; limit: number; dryerUsed: number; dryerLimit: number; windowDays: number; resetsAt: string | null };
   cooldownClearsAt: string | null;
   strikes: Array<{ id: string; reason?: string; createdAt?: string }>;
 };
@@ -340,6 +340,17 @@ export type BookingDto = {
   countsAgainstQuota: boolean;
   cancelledAt: string | null;
   isCancelled: boolean;
+};
+
+export type HomeDto = {
+  profile: MeDto | null;
+  hostels: HostelDto[];
+  selectedHostelId: string;
+  machines: MachineDto[];
+  washersFree: number;
+  washersTotal: number;
+  upcoming: BookingDto[];
+  pendingIncomingExchangeCount: number;
 };
 
 /** One slot claim in a batch. `date` + `hour` is accepted instead of `startsAt`. */
@@ -576,6 +587,14 @@ export const api = {
         body: { email, otp },
         auth: false,
       }),
+  },
+
+  home: {
+    /** Auth optional: sends a bearer token when one is stored. */
+    get: (hostelId?: string) =>
+      request<HomeDto>(
+        `/home${hostelId ? `?hostelId=${encodeURIComponent(hostelId)}` : ""}`,
+      ),
   },
 
   me: {

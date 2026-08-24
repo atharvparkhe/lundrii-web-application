@@ -71,6 +71,7 @@ export type Quota = {
   used: number;
   limit: number;
   dryerUsed: number;
+  dryerLimit: number;
   resetLabel: string;
 };
 

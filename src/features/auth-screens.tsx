@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { IconMail } from "@/components/icons";
 import {
   AuthField,
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui";
 import { isAllowedDomain, rejectionLine } from "@/lib/domain";
 import { padHour } from "@/lib/format";
-import { ApiError, api, type SignupHostelDto } from "@/lib/api";
+import { ApiError, api, getAccess, type SignupHostelDto } from "@/lib/api";
 import { useLundrii } from "@/store/lundrii-store";
 
 // Mirrors the Prototype meter: four bars, filled purely by length, and three
@@ -500,6 +500,9 @@ export function DomainRejectedScreen() {
 export function VerifyEmailScreen() {
   const app = useLundrii();
   const router = useRouter();
+  const search = useSearchParams();
+  const token = search.get("token") ?? "";
+  const tokenTried = useRef(false);
   const email =
     app.auth.email.trim() && isAllowedDomain(app.auth.email)
       ? app.auth.email.trim()
@@ -507,15 +510,46 @@ export function VerifyEmailScreen() {
   const [otp, setOtp] = useState("");
   const [busy, setBusy] = useState(false);
 
+  async function afterVerified() {
+    app.setDemoMode("normal");
+    if (getAccess()) {
+      await app.loadHome();
+      app.showToast("Email confirmed.");
+      router.push("/profile");
+      return;
+    }
+    app.showToast("Email confirmed. Sign in to book.");
+    router.push("/auth/sign-in");
+  }
+
+  useEffect(() => {
+    if (!token || tokenTried.current) return;
+    tokenTried.current = true;
+    void (async () => {
+      setBusy(true);
+      try {
+        await api.auth.verifyEmail({ token });
+        await afterVerified();
+      } catch (err) {
+        app.showToast(
+          err instanceof ApiError ? err.message : "That link didn't work.",
+          "danger",
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+    // Token links run once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
   /** The code is printed by the dev server; in production it arrives by email. */
   async function verifyCode() {
     if (otp.length !== 6 || busy) return;
     setBusy(true);
     try {
       await api.auth.verifyEmail({ email, otp });
-      app.setDemoMode("normal");
-      app.showToast("Email confirmed. Sign in to book.");
-      router.push("/auth/sign-in");
+      await afterVerified();
     } catch (err) {
       app.showToast(
         err instanceof ApiError ? err.message : "That code didn't work.",
@@ -669,26 +703,17 @@ export function ForgotPasswordScreen() {
           </FieldButton>
         </div>
         {sent ? (
-          <>
-            <div className="mx-6 mt-7 anim-rise flex items-center gap-[13px] rounded-[24px] border border-white/22 bg-white/14 px-[18px] py-4 backdrop-blur-[24px]">
-              <div className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full bg-success-dot">
-                <span className="text-[11px] font-bold text-field-deep">✓</span>
-              </div>
-              <div className="flex-1">
-                <div className="text-[13.5px] font-[650]">Link sent</div>
-                <div className="mt-0.5 text-[12.5px] leading-[1.4] text-white/60">
-                  Check your inbox. You can ask again in 60 seconds.
-                </div>
+          <div className="mx-6 mt-7 anim-rise flex items-center gap-[13px] rounded-[24px] border border-white/22 bg-white/14 px-[18px] py-4 backdrop-blur-[24px]">
+            <div className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full bg-success-dot">
+              <span className="text-[11px] font-bold text-field-deep">✓</span>
+            </div>
+            <div className="flex-1">
+              <div className="text-[13.5px] font-[650]">Link sent</div>
+              <div className="mt-0.5 text-[12.5px] leading-[1.4] text-white/60">
+                Check your inbox. You can ask again in 60 seconds.
               </div>
             </div>
-            <button
-              type="button"
-              className="mx-6 mt-3 text-center text-[13px] font-semibold text-white/75"
-              onClick={() => router.push("/auth/reset")}
-            >
-              Open the link →
-            </button>
-          </>
+          </div>
         ) : null}
         <div className="mt-auto px-6 pt-10">
           <InlineLink prefix="Remembered it? " action="Back to sign in" href="/auth/sign-in" />

@@ -89,7 +89,7 @@ export function EditProfileScreen() {
       });
       app.applyMe(updated);
       const homeChanged = hostelId !== profile.hostelId;
-      await app.refresh(homeChanged ? updated.hostelId ?? undefined : undefined);
+      await app.loadHome(homeChanged ? updated.hostelId ?? undefined : undefined);
       app.showToast("Profile saved.");
       setShowErrors(false);
       router.push("/profile");

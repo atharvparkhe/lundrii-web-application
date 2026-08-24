@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BackChip,
   CheckCircle,
@@ -33,6 +33,10 @@ export function ExchangesInboxScreen() {
   const router = useRouter();
   const q = useSearchParams();
   const tab = q.get("tab") === "sent" ? 1 : 0;
+
+  useEffect(() => {
+    if (app.live) void app.loadBookings();
+  }, [app.live, app.loadBookings]);
 
   function setTab(i: number) {
     if (i === 1) router.replace("/exchanges?tab=sent");

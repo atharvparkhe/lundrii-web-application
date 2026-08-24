@@ -28,9 +28,8 @@ import {
   mapHostel,
   mapIncomingExchange,
   mapMachine,
-  mapMoveOption,
-  mapNotification,
-  mapOutgoingExchange,
+    mapMoveOption,
+    mapOutgoingExchange,
   mapProfile,
   mapSlot,
   mapTicket,
@@ -109,9 +108,13 @@ type State = {
   profile: StudentProfile;
   hostels: Hostel[];
   machines: Machine[];
+  /** Server washer counts for the selected hostel — do not derive from `machines`. */
+  washersFree: number;
+  washersTotal: number;
   upcoming: Booking[];
   past: Booking[];
   exchanges: ExchangeRequest[];
+  pendingIncomingExchangeCount: number;
   sentSeed: SentExchangeDetail[];
   extraSent: SentExchangeDetail[];
   withdrawnSentIds: string[];
@@ -120,6 +123,7 @@ type State = {
   quotaUsed: number;
   quotaLimit: number;
   dryerUsed: number;
+  dryerLimit: number;
   nextId: number;
   toast: ToastMessage | null;
   lastSwapDone: SwapDoneResult | null;
@@ -147,74 +151,6 @@ function persistSelectedHostelId(hostelId: string) {
   if (typeof window === "undefined") return;
   if (hostelId) window.sessionStorage.setItem(SELECTED_HOSTEL_KEY, hostelId);
   else window.sessionStorage.removeItem(SELECTED_HOSTEL_KEY);
-}
-
-type CatalogOpts = {
-  hostelId?: string;
-  homeHostelId?: string | null;
-  /** Placed students: institute hostels from /me/hostels. */
-  eligible?: Hostel[];
-};
-
-type Catalog = {
-  hostels: Hostel[];
-  machines: Machine[];
-  activeHostel: string;
-  scheduleError: string | null;
-};
-
-async function fetchMachines(hostelId: string): Promise<{
-  machines: Machine[];
-  scheduleError: string | null;
-}> {
-  try {
-    return {
-      machines: (await api.hostels.machines(hostelId)).map(mapMachine),
-      scheduleError: null,
-    };
-  } catch {
-    return { machines: [], scheduleError: "Couldn't load the schedule." };
-  }
-}
-
-/** One Book catalog for guests and signed-in students. */
-async function fetchCatalog(opts: CatalogOpts = {}): Promise<Catalog> {
-  let hostels = opts.eligible?.length ? opts.eligible : [];
-  if (!hostels.length) {
-    const signup = await api.auth.signupOptions();
-    hostels = (signup.hostels ?? []).map((h) => ({
-      id: h.id,
-      name: h.name,
-      isHome: Boolean(opts.homeHostelId && h.id === opts.homeHostelId),
-    }));
-  } else if (opts.homeHostelId) {
-    hostels = hostels.map((h) => ({
-      ...h,
-      isHome: h.id === opts.homeHostelId,
-    }));
-  }
-
-  const requested = opts.hostelId ?? "";
-  const homeId = opts.homeHostelId ?? "";
-  // Prefer remembered → home → first hostel in the list (covers unset profile hostel).
-  const activeHostel =
-    (requested && hostels.some((h) => h.id === requested) ? requested : "") ||
-    (homeId && hostels.some((h) => h.id === homeId) ? homeId : "") ||
-    hostels[0]?.id ||
-    "";
-  if (!activeHostel) {
-    return { hostels, machines: [], activeHostel: "", scheduleError: null };
-  }
-  const { machines, scheduleError } = await fetchMachines(activeHostel);
-  return {
-    hostels: hostels.map((h) => ({
-      ...h,
-      isHome: Boolean(homeId && h.id === homeId) || (!homeId && h.id === activeHostel),
-    })),
-    machines,
-    activeHostel,
-    scheduleError,
-  };
 }
 
 function loadSignedIn(): boolean {
@@ -254,9 +190,12 @@ function initialState(): State {
     profile,
     hostels: [],
     machines: [],
+    washersFree: 0,
+    washersTotal: 0,
     upcoming: seeded<Booking[]>(seed.bookings.upcoming).map(normalizeBooking),
     past: seeded<Booking[]>(seed.bookings.past),
     exchanges: seeded<ExchangeRequest[]>(seed.exchanges),
+    pendingIncomingExchangeCount: seeded<ExchangeRequest[]>(seed.exchanges).length,
     sentSeed: seeded<SentExchangeDetail[]>(seed.sentExchanges),
     extraSent: [],
     withdrawnSentIds: [],
@@ -268,6 +207,7 @@ function initialState(): State {
     quotaUsed: seed.profile.quota.used,
     quotaLimit: seed.meta.quotaLimit,
     dryerUsed: seed.profile.quota.dryerUsed ?? 0,
+    dryerLimit: seed.profile.quota.dryerLimit ?? seed.meta.quotaLimit,
     nextId: 2000,
     toast: null,
     lastSwapDone: clone(seed.swapDone) as SwapDoneResult,
@@ -289,9 +229,12 @@ function guestSeedPatch(): Partial<State> {
     profile: fresh.profile,
     hostels: [],
     machines: [],
+    washersFree: fresh.washersFree,
+    washersTotal: fresh.washersTotal,
     upcoming: fresh.upcoming,
     past: fresh.past,
     exchanges: fresh.exchanges,
+    pendingIncomingExchangeCount: fresh.pendingIncomingExchangeCount,
     sentSeed: fresh.sentSeed,
     extraSent: [],
     withdrawnSentIds: [],
@@ -300,6 +243,7 @@ function guestSeedPatch(): Partial<State> {
     quotaUsed: fresh.quotaUsed,
     quotaLimit: fresh.quotaLimit,
     dryerUsed: fresh.dryerUsed,
+    dryerLimit: fresh.dryerLimit,
     selectedHostelId: fresh.selectedHostelId,
     selectedFloor: fresh.selectedFloor,
     days: liveDays(),
@@ -371,15 +315,19 @@ export type LundriiStore = {
   profile: StudentProfile;
   hostels: Hostel[];
   machines: Machine[];
+  washersFree: number;
+  washersTotal: number;
   upcoming: Booking[];
   past: Booking[];
   exchanges: ExchangeRequest[];
+  pendingIncomingExchangeCount: number;
   sentExchanges: SentExchangeDetail[];
   tickets: Ticket[];
   notifications: ManagedNotification[];
   quotaUsed: number;
   quotaLimit: number;
   dryerUsed: number;
+  dryerLimit: number;
   quotaLeft: number;
   toast: ToastMessage | null;
   lastSwapDone: SwapDoneResult | null;
@@ -392,7 +340,12 @@ export type LundriiStore = {
   loading: boolean;
   scheduleError: string | null;
   days: LiveDay[];
-  refresh: (hostelId?: string) => Promise<void>;
+  /** Home bootstrap: only GET /home. */
+  loadHome: (hostelId?: string) => Promise<void>;
+  /** Bookings + exchanges lists. Call when those screens open. */
+  loadBookings: () => Promise<void>;
+  /** Tickets list. Call when Profile or tickets open. */
+  loadTickets: () => Promise<void>;
   applyMe: (me: MeDto) => void;
   loadSlots: (machineId: string, dayIdx: number) => Promise<void>;
   rememberDraft: (patch: Partial<AuthDraft>) => void;
@@ -479,10 +432,14 @@ function emptyLiveLists(): Partial<State> {
     notifications: [],
     machines: [],
     hostels: [],
+    washersFree: 0,
+    washersTotal: 0,
+    pendingIncomingExchangeCount: 0,
     lastRaisedTicket: null,
     quotaUsed: 0,
     quotaLimit: 0,
     dryerUsed: 0,
+    dryerLimit: 0,
     selectedHostelId: "",
     selectedFloor: "",
     profile: {
@@ -494,7 +451,7 @@ function emptyLiveLists(): Partial<State> {
       hostelName: "",
       floor: "",
       gender: "male",
-      quota: { used: 0, limit: 0, dryerUsed: 0, resetLabel: "" },
+      quota: { used: 0, limit: 0, dryerUsed: 0, dryerLimit: 0, resetLabel: "" },
       strikes: [],
       suspensionEnds: null,
       emailVerified: true,
@@ -525,10 +482,10 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /**
-   * One reload for Book. Always fills the hostel/machine catalog; signed-in
-   * students also get profile, bookings, tickets, and exchanges in the same pass.
+   * Home (and app mount / hostel switch): a single GET /home.
+   * Does not load past bookings, tickets, notifications, or the full exchange list.
    */
-  const refresh = useCallback(async (hostelId?: string) => {
+  const loadHome = useCallback(async (hostelId?: string) => {
     const signedIn = !!getAccess();
     dispatch({
       type: "setState",
@@ -540,98 +497,40 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
     });
     try {
       const days = liveDays();
-      if (!signedIn) {
-        const catalog = await fetchCatalog({
-          hostelId: hostelId ?? (loadSelectedHostelId() || undefined),
-        });
-        if (catalog.activeHostel) persistSelectedHostelId(catalog.activeHostel);
-        dispatch({
-          type: "setState",
-          patch: {
-            loading: false,
-            live: false,
-            days,
-            hostels: catalog.hostels,
-            machines: catalog.machines,
-            selectedHostelId: catalog.activeHostel,
-            slotCache: {},
-            scheduleError: catalog.scheduleError,
-          },
-        });
-        return;
-      }
-
-      const [me, eligible] = await Promise.all([
-        api.me.get(),
-        api.me.hostels().catch(() => []),
-      ]);
       const remembered =
         hostelId ??
         (selectedHostelIdRef.current || loadSelectedHostelId() || "");
-      const [catalog, upcomingDtos, pastDtos, ticketDtos, notifDtos, exchangeDtos] =
-        await Promise.all([
-          fetchCatalog({
-            hostelId: remembered || me.hostelId || undefined,
-            homeHostelId: me.hostelId,
-            eligible: eligible.map(mapHostel),
-          }),
-          api.bookings.list("upcoming").catch(() => []),
-          api.bookings.list("past").catch(() => []),
-          api.tickets.list().catch(() => []),
-          api.notifications.list().catch(() => []),
-          api.exchanges.list().catch(() => []),
-        ]);
-      if (catalog.activeHostel) persistSelectedHostelId(catalog.activeHostel);
-      const pending = exchangeDtos.filter(isPendingExchange);
-      const incoming = pending.filter((e) => e.direction === "incoming");
-      const outgoing = pending.filter((e) => e.direction === "outgoing");
-      dispatch({
-        type: "setState",
-        patch: {
-          live: true,
-          loading: false,
-          scheduleError: catalog.scheduleError,
-          days,
-          profile: mapProfile(me),
-          selectedHostelId: catalog.activeHostel,
-          hostels: catalog.hostels,
-          machines: catalog.machines,
-          upcoming: upcomingDtos.map((b) => mapBooking(b, days)),
-          past: pastDtos.map((b) => mapBooking(b, days)),
-          tickets: ticketDtos.map(mapTicket),
-          notifications: notifDtos.map(mapNotification),
-          exchanges: incoming.map((e) => mapIncomingExchange(e, days)),
-          extraSent: outgoing.map((e) => mapOutgoingExchange(e, days)),
-          sentSeed: [],
-          withdrawnSentIds: [],
-          quotaUsed: me.quota.used,
-          quotaLimit: me.quota.limit,
-          dryerUsed: me.quota.dryerUsed ?? 0,
-          slotCache: {},
-        },
-      });
+      const dto = await api.home.get(remembered || undefined);
+      const activeHostel = dto.selectedHostelId || "";
+      if (activeHostel) persistSelectedHostelId(activeHostel);
+      selectedHostelIdRef.current = activeHostel;
+      const patch: Partial<State> = {
+        loading: false,
+        live: Boolean(dto.profile),
+        days,
+        hostels: (dto.hostels ?? []).map(mapHostel),
+        machines: (dto.machines ?? []).map(mapMachine),
+        selectedHostelId: activeHostel,
+        washersFree: dto.washersFree ?? 0,
+        washersTotal: dto.washersTotal ?? 0,
+        upcoming: (dto.upcoming ?? []).map((b) => mapBooking(b, days)),
+        pendingIncomingExchangeCount: dto.pendingIncomingExchangeCount ?? 0,
+        slotCache: {},
+        scheduleError: null,
+      };
+      if (dto.profile) {
+        patch.profile = mapProfile(dto.profile);
+        patch.quotaUsed = dto.profile.quota.used;
+        patch.quotaLimit = dto.profile.quota.limit;
+        patch.dryerUsed = dto.profile.quota.dryerUsed ?? 0;
+        patch.dryerLimit = dto.profile.quota.dryerLimit ?? dto.profile.quota.limit ?? 0;
+      }
+      dispatch({ type: "setState", patch });
     } catch (err) {
       dispatch({ type: "setState", patch: { loading: false } });
       if (err instanceof ApiError && err.status === 401) {
-        clearTokens();
-        persistSignedIn(false);
-        dispatch({ type: "setState", patch: guestSeedPatch() });
-        const catalog = await fetchCatalog({
-          hostelId: loadSelectedHostelId() || undefined,
-        });
-        dispatch({
-          type: "setState",
-          patch: {
-            loading: false,
-            live: false,
-            hostels: catalog.hostels,
-            machines: catalog.machines,
-            selectedHostelId: catalog.activeHostel,
-            slotCache: {},
-            scheduleError: catalog.scheduleError,
-            days: liveDays(),
-          },
-        });
+        // Session teardown is handled by the unauthorized hook, which
+        // reloads Home as a guest.
         return;
       }
       dispatch({
@@ -643,7 +542,47 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
         },
       });
     }
-  }, [persistSignedIn]);
+  }, []);
+
+  const loadBookings = useCallback(async () => {
+    if (!getAccess()) return;
+    try {
+      const days = liveDays();
+      const [upcomingDtos, pastDtos, exchangeDtos] = await Promise.all([
+        api.bookings.list("upcoming").catch(() => []),
+        api.bookings.list("past").catch(() => []),
+        api.exchanges.list().catch(() => []),
+      ]);
+      const pending = exchangeDtos.filter(isPendingExchange);
+      const incoming = pending.filter((e) => e.direction === "incoming");
+      const outgoing = pending.filter((e) => e.direction === "outgoing");
+      dispatch({
+        type: "setState",
+        patch: {
+          days,
+          upcoming: upcomingDtos.map((b) => mapBooking(b, days)),
+          past: pastDtos.map((b) => mapBooking(b, days)),
+          exchanges: incoming.map((e) => mapIncomingExchange(e, days)),
+          extraSent: outgoing.map((e) => mapOutgoingExchange(e, days)),
+          sentSeed: [],
+          withdrawnSentIds: [],
+          pendingIncomingExchangeCount: incoming.length,
+        },
+      });
+    } catch {
+      /* keep whatever Home already loaded */
+    }
+  }, []);
+
+  const loadTickets = useCallback(async () => {
+    if (!getAccess()) return;
+    try {
+      const ticketDtos = await api.tickets.list();
+      dispatch({ type: "setState", patch: { tickets: ticketDtos.map(mapTicket) } });
+    } catch {
+      /* Profile still renders without a ticket count */
+    }
+  }, []);
 
   const applyMe = useCallback((me: MeDto) => {
     dispatch({
@@ -653,6 +592,7 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
         quotaUsed: me.quota.used,
         quotaLimit: me.quota.limit,
         dryerUsed: me.quota.dryerUsed ?? 0,
+        dryerLimit: me.quota.dryerLimit ?? me.quota.limit ?? 0,
       },
     });
   }, []);
@@ -668,8 +608,8 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
         ...(hasToken ? { live: true, ...emptyLiveLists() } : {}),
       },
     });
-    void refresh();
-  }, [refresh]);
+    void loadHome();
+  }, [loadHome]);
 
   // Any unrecoverable 401 ends the session immediately, wherever it happened.
   useEffect(() => {
@@ -677,10 +617,10 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
       persistSignedIn(false);
       dispatch({ type: "setState", patch: guestSeedPatch() });
       dispatch({ type: "toast", message: "Your session expired. Sign in again.", kind: "danger" });
-      void refresh();
+      void loadHome();
     });
     return () => setUnauthorizedHandler(null);
-  }, [persistSignedIn, refresh]);
+  }, [persistSignedIn, loadHome]);
 
   /** Slots are per machine per day, so they load on demand and cache. */
   const loadSlots = useCallback(
@@ -788,15 +728,19 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
     profile: state.profile,
     hostels: state.hostels,
     machines: state.machines,
+    washersFree: state.washersFree,
+    washersTotal: state.washersTotal,
     upcoming: state.upcoming,
     past: state.past,
     exchanges: state.exchanges,
+    pendingIncomingExchangeCount: state.pendingIncomingExchangeCount,
     sentExchanges,
     tickets: state.tickets,
     notifications: state.notifications,
     quotaUsed: state.quotaUsed,
     quotaLimit: state.quotaLimit,
     dryerUsed: state.dryerUsed,
+    dryerLimit: state.dryerLimit,
     quotaLeft: Math.max(0, state.quotaLimit - state.quotaUsed),
     toast: state.toast,
     lastSwapDone: state.lastSwapDone,
@@ -809,7 +753,9 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
     loading: state.loading,
     scheduleError: state.scheduleError,
     days: state.days,
-    refresh,
+    loadHome,
+    loadBookings,
+    loadTickets,
     applyMe,
     loadSlots,
     rememberDraft: (patch) => dispatch({ type: "setAuth", patch }),
@@ -824,7 +770,7 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
         persistSignedIn(true);
         selectedHostelIdRef.current = "";
         persistSelectedHostelId("");
-        await refresh();
+        await loadHome();
         return { ok: true };
       } catch (err) {
         const message =
@@ -843,7 +789,7 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
         persistSignedIn(true);
         selectedHostelIdRef.current = "";
         persistSelectedHostelId("");
-        await refresh();
+        await loadHome();
         return { ok: true };
       } catch (err) {
         const message =
@@ -881,30 +827,14 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "setPending", pending: null });
       dispatch({ type: "setState", patch: guestSeedPatch() });
       persistSignedIn(false);
-      void refresh();
+      void loadHome();
       showToast("Signed out. Today's schedule stays open to everyone.", "neutral");
     },
     setPending: (pending) => dispatch({ type: "setPending", pending }),
     setDemoMode: (mode) => dispatch({ type: "setDemoMode", mode }),
     setHostel: (hostelId) => {
       dispatch({ type: "setHostel", hostelId });
-      void (async () => {
-        dispatch({
-          type: "setState",
-          patch: { loading: true, scheduleError: null },
-        });
-        const { machines, scheduleError } = await fetchMachines(hostelId);
-        dispatch({
-          type: "setState",
-          patch: {
-            loading: false,
-            machines,
-            slotCache: {},
-            scheduleError,
-            selectedFloor: "",
-          },
-        });
-      })();
+      void loadHome(hostelId);
     },
     setFloor: (floor) => dispatch({ type: "setFloor", floor }),
     showToast,
@@ -974,6 +904,8 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
           dayIdx: input.dayIdx,
           quotaUsed: state.quotaUsed,
           quotaLimit: state.quotaLimit,
+          dryerUsed: state.dryerUsed,
+          dryerLimit: state.dryerLimit,
         });
         if (rule) return { ok: false, block: rule };
         return {
@@ -1014,7 +946,7 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
           };
         }
         if (!primary.ok) {
-          await refresh();
+          await loadHome();
           return { ok: false, block: blockFrom(primary) };
         }
         const booking = mapBooking(primary.booking, days);
@@ -1023,7 +955,7 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
         if (failedExtra && !failedExtra.ok) {
           showToast(failedExtra.detail, "warn");
         }
-        await refresh();
+        await loadHome();
         return { ok: true, booking };
       } catch (err) {
         const detail =
@@ -1050,7 +982,8 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
       }
       try {
         await api.bookings.cancel(id);
-        await refresh();
+        await loadHome();
+        await loadBookings();
       } catch (err) {
         showToast(
           err instanceof ApiError ? err.message : "Couldn't cancel that booking.",
@@ -1085,7 +1018,8 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
           machineId: option.machineId,
           startsAt: option.startsAt ?? startsAtFor(day.date, option.hour),
         });
-        await refresh();
+        await loadHome();
+        await loadBookings();
         return true;
       } catch (err) {
         showToast(
@@ -1125,7 +1059,8 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
               patch: { lastSwapDone: swapDoneFromIncoming(request) },
             });
           }
-          await refresh();
+          await loadHome();
+          await loadBookings();
           return { ok: true };
         } catch (err) {
           const reason =
@@ -1179,7 +1114,8 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
           (preset && !preset.allowsCustomNote ? preset.label : undefined);
         try {
           await api.exchanges.reject(id, reason);
-          await refresh();
+          await loadHome();
+          await loadBookings();
         } catch (err) {
           showToast(
             err instanceof ApiError ? err.message : "Couldn't reject that request.",
@@ -1199,7 +1135,8 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
       if (getAccess()) {
         try {
           await api.exchanges.withdraw(id);
-          await refresh();
+          await loadHome();
+          await loadBookings();
         } catch (err) {
           showToast(
             err instanceof ApiError ? err.message : "Couldn't withdraw that request.",
@@ -1237,7 +1174,8 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
             targetBookingId,
             offeredBookingId: input.isSwap ? input.offerId : undefined,
           });
-          await refresh();
+          await loadHome();
+          await loadBookings();
           return { ok: true };
         } catch (err) {
           const error =
@@ -1359,7 +1297,7 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
           });
           const ticket = mapTicket(dto);
           dispatch({ type: "setState", patch: { lastRaisedTicket: ticket } });
-          await refresh();
+          await loadTickets();
           return ticket;
         } catch (err) {
           showToast(

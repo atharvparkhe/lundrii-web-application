@@ -35,8 +35,10 @@ export function checkBookingRules(opts: {
   dayIdx: number;
   quotaUsed: number;
   quotaLimit: number;
+  dryerUsed?: number;
+  dryerLimit?: number;
 }): RuleBlock | null {
-  const { kind, dayIdx, quotaUsed, quotaLimit } = opts;
+  const { kind, dayIdx, quotaUsed, quotaLimit, dryerUsed = 0, dryerLimit = 0 } = opts;
   if (dayIdx >= ADVANCE_WINDOW_DAYS) {
     return {
       rule: "advance",
@@ -49,6 +51,13 @@ export function checkBookingRules(opts: {
       rule: "quota",
       title: "Weekly quota used",
       body: `You've used ${quotaUsed} of ${quotaLimit} washes this week (Monday–Sunday). Quota resets next Monday.`,
+    };
+  }
+  if (kind === "dryer" && dryerLimit > 0 && dryerUsed >= dryerLimit) {
+    return {
+      rule: "quota",
+      title: "Weekly dryer quota used",
+      body: `You've used ${dryerUsed} of ${dryerLimit} dryers this week (Monday–Sunday). Quota resets next Monday.`,
     };
   }
   return null;

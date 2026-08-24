@@ -33,6 +33,10 @@ export function BookingsScreen() {
   const [openRequestId, setOpenRequestId] = useState<string | null>(null);
   const requests = app.exchanges;
 
+  useEffect(() => {
+    if (app.live) void app.loadBookings();
+  }, [app.live, app.loadBookings]);
+
   const subtitle = `${
     app.upcoming.length ? `${app.upcoming.length} upcoming` : "Nothing upcoming"
   } · ${app.quotaLeft} of ${app.quotaLimit} washes left this week`;
