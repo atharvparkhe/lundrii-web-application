@@ -32,7 +32,7 @@ export function slotChrome(state: SlotState, kind: MachineKind = "washer"): stri
   }
 }
 
-/** Action chips only when the student can book. Guests just read the schedule. */
+/** Action chips only when the student can book. Guests still tap slots to sign in. */
 export function slotCta(
   state: SlotState,
   kind: MachineKind = "washer",
@@ -101,7 +101,7 @@ export function SlotRow({
     </>
   );
 
-  if (!canBook || !onSelect) {
+  if (!onSelect) {
     return <div className={rowClass}>{body}</div>;
   }
 

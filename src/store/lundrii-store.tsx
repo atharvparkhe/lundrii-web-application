@@ -119,6 +119,7 @@ type State = {
   notifications: ManagedNotification[];
   quotaUsed: number;
   quotaLimit: number;
+  dryerUsed: number;
   nextId: number;
   toast: ToastMessage | null;
   lastSwapDone: SwapDoneResult | null;
@@ -151,8 +152,7 @@ function persistSelectedHostelId(hostelId: string) {
 type CatalogOpts = {
   hostelId?: string;
   homeHostelId?: string | null;
-  gender?: "male" | "female" | null;
-  /** Placed students: same-gender hostels from /me/hostels. */
+  /** Placed students: institute hostels from /me/hostels. */
   eligible?: Hostel[];
 };
 
@@ -185,14 +185,8 @@ async function fetchCatalog(opts: CatalogOpts = {}): Promise<Catalog> {
     hostels = (signup.hostels ?? []).map((h) => ({
       id: h.id,
       name: h.name,
-      gender: h.gender === "female" ? "female" : "male",
       isHome: Boolean(opts.homeHostelId && h.id === opts.homeHostelId),
     }));
-    const gender = opts.gender;
-    if (gender === "male" || gender === "female") {
-      const filtered = hostels.filter((h) => h.gender === gender);
-      if (filtered.length) hostels = filtered;
-    }
   } else if (opts.homeHostelId) {
     hostels = hostels.map((h) => ({
       ...h,
@@ -202,6 +196,7 @@ async function fetchCatalog(opts: CatalogOpts = {}): Promise<Catalog> {
 
   const requested = opts.hostelId ?? "";
   const homeId = opts.homeHostelId ?? "";
+  // Prefer remembered → home → first hostel in the list (covers unset profile hostel).
   const activeHostel =
     (requested && hostels.some((h) => h.id === requested) ? requested : "") ||
     (homeId && hostels.some((h) => h.id === homeId) ? homeId : "") ||
@@ -211,7 +206,15 @@ async function fetchCatalog(opts: CatalogOpts = {}): Promise<Catalog> {
     return { hostels, machines: [], activeHostel: "", scheduleError: null };
   }
   const { machines, scheduleError } = await fetchMachines(activeHostel);
-  return { hostels, machines, activeHostel, scheduleError };
+  return {
+    hostels: hostels.map((h) => ({
+      ...h,
+      isHome: Boolean(homeId && h.id === homeId) || (!homeId && h.id === activeHostel),
+    })),
+    machines,
+    activeHostel,
+    scheduleError,
+  };
 }
 
 function loadSignedIn(): boolean {
@@ -264,6 +267,7 @@ function initialState(): State {
     })),
     quotaUsed: seed.profile.quota.used,
     quotaLimit: seed.meta.quotaLimit,
+    dryerUsed: seed.profile.quota.dryerUsed ?? 0,
     nextId: 2000,
     toast: null,
     lastSwapDone: clone(seed.swapDone) as SwapDoneResult,
@@ -295,6 +299,7 @@ function guestSeedPatch(): Partial<State> {
     notifications: fresh.notifications,
     quotaUsed: fresh.quotaUsed,
     quotaLimit: fresh.quotaLimit,
+    dryerUsed: fresh.dryerUsed,
     selectedHostelId: fresh.selectedHostelId,
     selectedFloor: fresh.selectedFloor,
     days: liveDays(),
@@ -374,6 +379,7 @@ export type LundriiStore = {
   notifications: ManagedNotification[];
   quotaUsed: number;
   quotaLimit: number;
+  dryerUsed: number;
   quotaLeft: number;
   toast: ToastMessage | null;
   lastSwapDone: SwapDoneResult | null;
@@ -476,6 +482,7 @@ function emptyLiveLists(): Partial<State> {
     lastRaisedTicket: null,
     quotaUsed: 0,
     quotaLimit: 0,
+    dryerUsed: 0,
     selectedHostelId: "",
     selectedFloor: "",
     profile: {
@@ -487,7 +494,7 @@ function emptyLiveLists(): Partial<State> {
       hostelName: "",
       floor: "",
       gender: "male",
-      quota: { used: 0, limit: 0, resetLabel: "" },
+      quota: { used: 0, limit: 0, dryerUsed: 0, resetLabel: "" },
       strikes: [],
       suspensionEnds: null,
       emailVerified: true,
@@ -566,7 +573,6 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
           fetchCatalog({
             hostelId: remembered || me.hostelId || undefined,
             homeHostelId: me.hostelId,
-            gender: me.gender,
             eligible: eligible.map(mapHostel),
           }),
           api.bookings.list("upcoming").catch(() => []),
@@ -600,6 +606,7 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
           withdrawnSentIds: [],
           quotaUsed: me.quota.used,
           quotaLimit: me.quota.limit,
+          dryerUsed: me.quota.dryerUsed ?? 0,
           slotCache: {},
         },
       });
@@ -643,6 +650,9 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
       type: "setState",
       patch: {
         profile: mapProfile(me),
+        quotaUsed: me.quota.used,
+        quotaLimit: me.quota.limit,
+        dryerUsed: me.quota.dryerUsed ?? 0,
       },
     });
   }, []);
@@ -698,8 +708,10 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
   );
 
   const selectedHostelName =
-    state.hostels.find((h) => h.id === state.selectedHostelId)?.name ??
-    state.profile.hostelName;
+    state.hostels.find((h) => h.id === state.selectedHostelId)?.name ||
+    state.hostels[0]?.name ||
+    state.profile.hostelName ||
+    "";
 
   const sentExchanges = useMemo(() => {
     const withdrawn = new Set(state.withdrawnSentIds);
@@ -784,6 +796,7 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
     notifications: state.notifications,
     quotaUsed: state.quotaUsed,
     quotaLimit: state.quotaLimit,
+    dryerUsed: state.dryerUsed,
     quotaLeft: Math.max(0, state.quotaLimit - state.quotaUsed),
     toast: state.toast,
     lastSwapDone: state.lastSwapDone,
@@ -809,6 +822,7 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
         dispatch({ type: "setPending", pending: null });
         dispatch({ type: "setState", patch: { live: true, ...emptyLiveLists() } });
         persistSignedIn(true);
+        selectedHostelIdRef.current = "";
         persistSelectedHostelId("");
         await refresh();
         return { ok: true };
@@ -827,6 +841,7 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
         dispatch({ type: "setPending", pending: null });
         dispatch({ type: "setState", patch: { live: true, ...emptyLiveLists() } });
         persistSignedIn(true);
+        selectedHostelIdRef.current = "";
         persistSelectedHostelId("");
         await refresh();
         return { ok: true };
@@ -896,9 +911,11 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
     clearToast: () => dispatch({ type: "clearToast" }),
     getHostels: () => state.hostels,
     getMachines: (hostelId) => {
-      const id = hostelId ?? state.selectedHostelId;
-      if (!id) return [];
-      return state.machines.filter((m) => m.hostelId === id);
+      const id =
+        hostelId || state.selectedHostelId || state.hostels[0]?.id || "";
+      if (!id) return state.machines;
+      const filtered = state.machines.filter((m) => m.hostelId === id);
+      return filtered.length ? filtered : state.machines;
     },
     getSlots,
     hasLoadedSlots,

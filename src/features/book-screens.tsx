@@ -21,8 +21,9 @@ import {
 } from "./schedule-chrome";
 
 /**
- * One Book page. Guests can read the schedule; signed-in students can
- * open a slot and book. The tab bar is shell chrome, not a second screen.
+ * One Book page. Guests can browse the schedule; tapping a slot opens
+ * sign-in. Signed-in students can book. The tab bar is shell chrome,
+ * not a second screen.
  */
 export function BookScreen() {
   const app = useLundrii();
@@ -84,7 +85,12 @@ export function BookScreen() {
   }
 
   function onSlot(slot: Slot) {
-    if (!canBook || !machine) return;
+    if (!canBook) {
+      app.setPending(null);
+      router.push("/auth/sign-in");
+      return;
+    }
+    if (!machine) return;
     if (slot.state === "past" || (isToday && slot.hour < currentHour)) return;
     if (slot.state === "offline") {
       app.showToast("That machine is out of service.", "warn");
@@ -201,7 +207,7 @@ export function BookScreen() {
                       slot={slot}
                       kind={kind}
                       canBook={canBook}
-                      onSelect={canBook ? onSlot : undefined}
+                      onSelect={onSlot}
                     />
                   ))
                 )}

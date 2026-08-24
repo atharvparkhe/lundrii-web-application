@@ -180,7 +180,6 @@ export function mapHostel(dto: HostelDto): Hostel {
   return {
     id: dto.id,
     name: dto.name,
-    gender: dto.gender,
     isHome: dto.isHome,
   };
 }
@@ -320,6 +319,7 @@ export function mapProfile(dto: MeDto): StudentProfile {
     quota: {
       used: dto.quota.used,
       limit: dto.quota.limit,
+      dryerUsed: dto.quota.dryerUsed ?? 0,
       resetLabel: dto.quota.resetsAt
         ? `resets ${shortDate(dto.quota.resetsAt)}`
         : "resets Monday",

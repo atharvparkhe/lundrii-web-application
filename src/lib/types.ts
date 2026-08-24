@@ -32,7 +32,6 @@ export type ToastKind = "ok" | "warn" | "danger" | "neutral";
 export type Hostel = {
   id: string;
   name: string;
-  gender: Gender;
   isHome: boolean;
 };
 
@@ -71,6 +70,7 @@ export type Booking = {
 export type Quota = {
   used: number;
   limit: number;
+  dryerUsed: number;
   resetLabel: string;
 };
 

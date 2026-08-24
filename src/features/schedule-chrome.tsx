@@ -3,15 +3,11 @@
 import { Overlay, Sheet } from "@/components/ui";
 import type { MockDay } from "@/lib/days";
 import { machineFloor } from "@/lib/format";
-import type { Machine, MachineKind, MachineStatus } from "@/lib/types";
+import type { Machine, MachineKind } from "@/lib/types";
 import { useEffect, useRef } from "react";
 
 export function scheduleAccent(kind: MachineKind): string {
   return kind === "dryer" ? "#E08A16" : "#12A45F";
-}
-
-export function scheduleAccentDark(kind: MachineKind): string {
-  return kind === "dryer" ? "#8A4E05" : "#0B7A4B";
 }
 
 export function HostelChip({
@@ -65,27 +61,14 @@ export function KindToggle({
   );
 }
 
-function triggerStatus(status: MachineStatus): {
-  label: string;
-  fg: string;
-} {
-  if (status === "free") return { label: "Free now", fg: "#0B7A4B" };
-  if (status === "offline") return { label: "Offline", fg: "#B4341F" };
-  return { label: "In use", fg: "rgba(10,21,51,.55)" };
-}
-
 export function FloorTrigger({
   machine,
-  kind,
   onClick,
 }: {
   machine: Machine | null;
   kind: MachineKind;
   onClick: () => void;
 }) {
-  const status = machine ? triggerStatus(machine.status) : null;
-  const statusFg =
-    machine?.status === "free" ? scheduleAccentDark(kind) : status?.fg;
   return (
     <button
       type="button"
@@ -101,36 +84,9 @@ export function FloorTrigger({
           {machine?.name ?? "No machines yet"}
         </div>
       </div>
-      <div className="flex items-center gap-[9px]">
-        {status ? (
-          <span
-            className="rounded-[11px] bg-white/85 px-2.5 py-1 text-[11px] font-[650]"
-            style={{ color: statusFg }}
-          >
-            {status.label}
-          </span>
-        ) : null}
-        <span className="text-[9px] text-white opacity-60">▼</span>
-      </div>
+      <span className="text-[9px] text-white opacity-60">▼</span>
     </button>
   );
-}
-
-export function floorOptionStatus(
-  status: MachineStatus,
-  kind: MachineKind,
-): { label: string; fg: string; bg: string } {
-  if (status === "free") {
-    return {
-      label: "Free now",
-      fg: scheduleAccentDark(kind),
-      bg: kind === "dryer" ? "rgba(224,138,22,.14)" : "rgba(18,164,95,.14)",
-    };
-  }
-  if (status === "offline") {
-    return { label: "Offline", fg: "#B4341F", bg: "rgba(180,52,31,.1)" };
-  }
-  return { label: "In use", fg: "rgba(10,21,51,.45)", bg: "rgba(10,21,51,.05)" };
 }
 
 export function FloorRow({
@@ -144,7 +100,6 @@ export function FloorRow({
   selected?: boolean;
   onClick: () => void;
 }) {
-  const status = floorOptionStatus(machine.status, kind);
   const selectedBg =
     kind === "dryer" ? "bg-dryer-amber/8" : "bg-success/8";
   const selectedBorder =
@@ -166,12 +121,6 @@ export function FloorRow({
         <div className="mt-0.5 text-[15px] font-[650]">{machine.name}</div>
         <div className="mt-0.5 text-[12px] text-navy/50">{machine.subtitle}</div>
       </div>
-      <span
-        className="flex-none rounded-xl px-2.5 py-[5px] text-[11.5px] font-[650]"
-        style={{ color: status.fg, background: status.bg }}
-      >
-        {status.label}
-      </span>
     </button>
   );
 }

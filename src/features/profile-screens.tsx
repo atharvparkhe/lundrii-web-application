@@ -20,7 +20,6 @@ import {
 } from "@/lib/api";
 import { shortDate } from "@/lib/live";
 import { useLundrii } from "@/store/lundrii-store";
-import { HostelSwitcher } from "./home-screen";
 
 const PROVIDER_ORDER: AssistantProviderId[] = ["chatgpt", "claude"];
 const AI_CONNECTORS_ENABLED = false;
@@ -132,7 +131,7 @@ export function ProfileScreen() {
   const suspended = p.suspended;
   const strikeCount = p.strikes.length;
   const [sheet, setSheet] = useState<
-    "standing" | "out" | "hostel" | "ai-list" | "ai-detail" | null
+    "standing" | "out" | "ai-list" | "ai-detail" | null
   >(null);
   const [connections, setConnections] = useState<AssistantConnectionsDto>({
     mcpUrl: "",
@@ -267,85 +266,95 @@ export function ProfileScreen() {
             <div className="text-[11px] tracking-[0.06em] text-white/60">THIS WEEK</div>
             <div className="text-[11.5px] text-white/60">{app.profile.quota.resetLabel}</div>
           </div>
-          <div className="mt-1.5 flex items-baseline gap-[3px]">
-            <span className="text-[40px] font-[650] tracking-[-0.03em]">{app.quotaUsed}</span>
-            <span className="text-[40px] font-[650] tracking-[-0.03em] text-white/50">
-              /{app.quotaLimit}
-            </span>
-            <span className="ml-2 text-[14px] text-white/65">washes used</span>
-          </div>
-          <div className="mt-3 flex gap-1.5">
-            {pips.map((on, i) => (
-              <div
-                key={i}
-                className={`h-[7px] flex-1 rounded ${on ? "bg-white" : "bg-white/25"}`}
-              />
-            ))}
+          <div className="mt-1.5 flex gap-5">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline gap-[3px]">
+                <span className="text-[36px] font-[650] tracking-[-0.03em]">{app.quotaUsed}</span>
+                <span className="text-[36px] font-[650] tracking-[-0.03em] text-white/50">
+                  /{app.quotaLimit}
+                </span>
+              </div>
+              <div className="mt-0.5 text-[12.5px] text-white/65">washes used</div>
+              <div className="mt-2.5 flex gap-1.5">
+                {pips.map((on, i) => (
+                  <div
+                    key={i}
+                    className={`h-[7px] flex-1 rounded ${on ? "bg-white" : "bg-white/25"}`}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline gap-[3px]">
+                <span className="text-[36px] font-[650] tracking-[-0.03em]">{app.dryerUsed}</span>
+              </div>
+              <div className="mt-0.5 text-[12.5px] text-white/65">dryers used</div>
+            </div>
           </div>
         </div>
 
-        <WhiteSheet grow={false} className="mt-auto px-5 pb-28 pt-[22px]">
-          <div className="flex items-center justify-between">
-            <div className="text-base font-bold">Standing</div>
-            <button
-              type="button"
-              onClick={() => setSheet("standing")}
-              className={`rounded-[13px] px-[11px] py-[5px] text-xs font-[650] ${
-                suspended
-                  ? "bg-danger/10 text-danger"
-                  : "bg-success/10 text-success-dark"
-              }`}
-            >
-              {standingLabel}
-            </button>
+        <WhiteSheet className="mt-3 min-h-0 flex-1 overflow-hidden px-5 pb-28 pt-[22px]">
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex min-h-full flex-col">
+              <div className="flex items-center justify-between">
+                <div className="text-base font-bold">Standing</div>
+                <button
+                  type="button"
+                  onClick={() => setSheet("standing")}
+                  className={`rounded-[13px] px-[11px] py-[5px] text-xs font-[650] ${
+                    suspended
+                      ? "bg-danger/10 text-danger"
+                      : "bg-success/10 text-success-dark"
+                  }`}
+                >
+                  {standingLabel}
+                </button>
+              </div>
+              <p className="mt-[11px] text-[12.5px] leading-normal text-navy/55">{standingBody}</p>
+
+              <div className="mt-5 flex flex-col gap-2">
+                <Row
+                  label="Edit profile"
+                  value="Name, phone, home hostel"
+                  onClick={() => router.push("/profile/edit")}
+                />
+                <Row
+                  label="Your tickets"
+                  value={ticketSummary}
+                  onClick={() => router.push("/tickets")}
+                />
+              </div>
+
+              <div className="mt-auto flex flex-col gap-2 pt-8">
+                <Row
+                  label="Connect to your AI provider"
+                  value={
+                    AI_CONNECTORS_ENABLED
+                      ? connectionSubtitle(providers)
+                      : "ChatGPT or Claude"
+                  }
+                  comingSoon={!AI_CONNECTORS_ENABLED}
+                  onClick={
+                    AI_CONNECTORS_ENABLED ? () => setSheet("ai-list") : undefined
+                  }
+                />
+                <Row
+                  label="Book using WhatsApp"
+                  value="Message a slot to book"
+                  comingSoon={!WHATSAPP_BOOKING_ENABLED}
+                />
+                <button
+                  type="button"
+                  onClick={() => setSheet("out")}
+                  className="mt-[11px] flex h-[50px] w-full items-center justify-center rounded-[25px] border-[1.5px] border-[rgba(180,52,31,.22)] text-[14.5px] font-[650] text-danger"
+                >
+                  Sign out
+                </button>
+              </div>
+            </div>
           </div>
-          <p className="mt-[11px] text-[12.5px] leading-normal text-navy/55">{standingBody}</p>
-          <div className="mt-5 flex flex-col gap-2">
-            <Row
-              label="Edit profile"
-              value="Name, phone, home hostel"
-              onClick={() => router.push("/profile/edit")}
-            />
-            {app.signedIn && app.hostels.length > 0 ? (
-              <Row
-                label="Switch hostel"
-                value={app.selectedHostelName}
-                onClick={() => setSheet("hostel")}
-              />
-            ) : null}
-            <Row
-              label="Connect to your AI provider"
-              value={
-                AI_CONNECTORS_ENABLED
-                  ? connectionSubtitle(providers)
-                  : "ChatGPT or Claude"
-              }
-              comingSoon={!AI_CONNECTORS_ENABLED}
-              onClick={
-                AI_CONNECTORS_ENABLED ? () => setSheet("ai-list") : undefined
-              }
-            />
-            <Row
-              label="Book using WhatsApp"
-              value="Message a slot to book"
-              comingSoon={!WHATSAPP_BOOKING_ENABLED}
-            />
-            <Row
-              label="Your tickets"
-              value={ticketSummary}
-              onClick={() => router.push("/tickets")}
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => setSheet("out")}
-            className="mt-[11px] flex h-[50px] w-full items-center justify-center rounded-[25px] border-[1.5px] border-[rgba(180,52,31,.22)] text-[14.5px] font-[650] text-danger"
-          >
-            Sign out
-          </button>
         </WhiteSheet>
       </div>
-      <HostelSwitcher open={sheet === "hostel"} onClose={() => setSheet(null)} />
       <Overlay open={sheet === "standing"} onClose={() => setSheet(null)}>
         <Sheet>
           <h2 className="text-[20px] font-bold">Standing</h2>

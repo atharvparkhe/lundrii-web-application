@@ -220,14 +220,12 @@ export type LoginDto = {
 export type HostelDto = {
   id: string;
   name: string;
-  gender: "male" | "female";
   isHome: boolean;
 };
 
 export type SignupHostelDto = {
   id: string;
   name: string;
-  gender: "male" | "female";
   instituteId: string;
   instituteName: string;
 };
@@ -246,7 +244,7 @@ export type MeDto = {
   suspended: boolean;
   suspensionEnds: string | null;
   suspensionReason: string | null;
-  quota: { used: number; limit: number; windowDays: number; resetsAt: string | null };
+  quota: { used: number; limit: number; dryerUsed: number; windowDays: number; resetsAt: string | null };
   cooldownClearsAt: string | null;
   strikes: Array<{ id: string; reason?: string; createdAt?: string }>;
 };
