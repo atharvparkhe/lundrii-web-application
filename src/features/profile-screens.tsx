@@ -45,7 +45,7 @@ const FALLBACK_PROVIDERS: Record<AssistantProviderId, AssistantProviderDto> = {
     id: "claude",
     label: "Claude",
     status: "disconnected",
-    openUrl: "https://claude.ai/settings/connectors",
+    openUrl: "https://claude.ai/new?modal=add-custom-connector#settings/customize-connectors",
     steps: [
       "Open Claude",
       "Settings → Connectors → Add custom connector",
@@ -365,7 +365,6 @@ export function ProfileScreen() {
 
         <WhiteSheet className="mt-3 min-h-0 flex-1 overflow-hidden px-5 pb-28 pt-[22px]">
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <div className="flex min-h-full flex-col">
               <div className="flex items-center justify-between">
                 <div className="text-base font-bold">Standing</div>
                 <button
@@ -393,11 +392,8 @@ export function ProfileScreen() {
                   value={ticketSummary}
                   onClick={() => router.push("/tickets")}
                 />
-              </div>
-
-              <div className="mt-auto flex flex-col gap-2 pt-8">
                 <Row
-                  label="Connect to your AI provider"
+                  label="Connect to Claude"
                   value={
                     AI_CONNECTORS_ENABLED
                       ? connectionSubtitle(providers)
@@ -421,7 +417,6 @@ export function ProfileScreen() {
                   Sign out
                 </button>
               </div>
-            </div>
           </div>
         </WhiteSheet>
       </div>
@@ -472,7 +467,7 @@ export function ProfileScreen() {
         }}
       >
         <Sheet>
-          <h2 className="text-[20px] font-bold">Connect to your AI provider</h2>
+          <h2 className="text-[20px] font-bold">Connect to Claude</h2>
           <p className="mt-1 text-[12.5px] leading-relaxed text-navy/50">
             Start with Claude: add Lundrii as a custom connector, then approve.
             This tab cannot finish the connection for you.

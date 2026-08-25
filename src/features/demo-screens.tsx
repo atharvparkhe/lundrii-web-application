@@ -329,7 +329,7 @@ export function OfflineDemo() {
 export function EmptyBookingsDemo() {
   return (
     <Phone variant="compact">
-      <h1 className="px-[22px] pt-3 text-[30px] font-bold">Bookings</h1>
+      <h1 className="px-[22px] pt-3 text-[30px] font-bold">My Bookings</h1>
       <WhiteSheet className="mt-6 px-5 pb-8 pt-8">
         <div className="rounded-[22px] border-[1.5px] border-navy/16 px-[18px] py-[26px] text-center">
           <div className="text-[15px] font-semibold">Nothing booked yet</div>

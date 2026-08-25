@@ -239,7 +239,7 @@ export function BookingsSkeleton() {
     <Phone variant="compact">
       <div className="flex min-h-full flex-col">
         <div className="px-[22px] pt-[58px]">
-          <Skeleton className="h-[30px] w-[160px] bg-white/20" />
+          <Skeleton className="h-[30px] w-[196px] bg-white/20" />
         </div>
         <div className="px-[22px] pt-[7px]">
           <Skeleton className="h-[14px] w-[220px] bg-white/20" />
@@ -294,10 +294,8 @@ export function ProfileSkeleton() {
               labelWidth="w-[108px]"
               valueWidth="w-[120px]"
             />
-          </div>
-          <div className="mt-8 flex flex-col gap-2">
             <SheetRowSkeleton
-              labelWidth="w-[180px]"
+              labelWidth="w-[148px]"
               valueWidth="w-[128px]"
             />
             <SheetRowSkeleton

@@ -68,7 +68,7 @@ export function BookingsScreen() {
   return (
     <Phone variant="compact">
       <div className="flex min-h-full flex-col">
-        <h1 className="px-[22px] pt-[58px] text-[30px] font-bold tracking-[-0.03em]">Bookings</h1>
+        <h1 className="px-[22px] pt-[58px] text-[30px] font-bold tracking-[-0.03em]">My Bookings</h1>
         <div className="px-[22px] pt-[7px] text-[13.5px] text-white/60">{subtitle}</div>
 
         <WhiteSheet className="mt-4 px-[18px] pb-[120px] pt-5">
