@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { IconMail } from "@/components/icons";
+import { useEffect, useMemo, useState } from "react";
 import {
   AuthField,
   BackChip,
@@ -18,7 +17,7 @@ import {
 import { isAllowedDomain, rejectionLine } from "@/lib/domain";
 import { padHour } from "@/lib/format";
 import { authRedirect, mapAuthError } from "@/lib/auth-redirect";
-import { ApiError, api, getAccess, type SignupHostelDto } from "@/lib/api";
+import { ApiError, api, type SignupHostelDto } from "@/lib/api";
 import { useLundrii } from "@/store/lundrii-store";
 
 // Mirrors the Prototype meter: four bars, filled purely by length, and three
@@ -402,8 +401,8 @@ export function SignUpScreen() {
       app.showToast(res.error, "danger");
       return;
     }
-    app.showToast("Account created. Enter the code we emailed you.");
-    router.push("/auth/verify");
+    app.showToast("Account created. Sign in with your password.");
+    router.push("/auth/sign-in");
   }
 
   return (
@@ -578,144 +577,6 @@ export function DomainRejectedScreen() {
           </FieldButton>
         </div>
       </div>
-      </div>
-    </Phone>
-  );
-}
-
-export function VerifyEmailScreen() {
-  const app = useLundrii();
-  const router = useRouter();
-  const search = useSearchParams();
-  const token = search.get("token") ?? "";
-  const tokenTried = useRef(false);
-  const email =
-    app.auth.email.trim() && isAllowedDomain(app.auth.email)
-      ? app.auth.email.trim()
-      : app.profile.email;
-  const [otp, setOtp] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  async function afterVerified() {
-    app.setDemoMode("normal");
-    if (getAccess()) {
-      await app.loadHome();
-      app.showToast("Email confirmed.");
-      router.push("/profile");
-      return;
-    }
-    app.showToast("Email confirmed. Sign in to book.");
-    router.push("/auth/sign-in");
-  }
-
-  useEffect(() => {
-    if (!token || tokenTried.current) return;
-    tokenTried.current = true;
-    void (async () => {
-      setBusy(true);
-      try {
-        await api.auth.verifyEmail({ token });
-        await afterVerified();
-      } catch (err) {
-        app.showToast(
-          err instanceof ApiError ? err.message : "That link didn't work.",
-          "danger",
-        );
-      } finally {
-        setBusy(false);
-      }
-    })();
-    // Token links run once on mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
-
-  /** The code is printed by the dev server; in production it arrives by email. */
-  async function verifyCode() {
-    if (otp.length !== 6 || busy) return;
-    setBusy(true);
-    try {
-      await api.auth.verifyEmail({ email, otp });
-      await afterVerified();
-    } catch (err) {
-      app.showToast(
-        err instanceof ApiError ? err.message : "That code didn't work.",
-        "danger",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function resend() {
-    try {
-      await api.auth.resendVerification(email);
-      app.showToast("New code sent.");
-    } catch (err) {
-      app.showToast(
-        err instanceof ApiError ? err.message : "Couldn't resend the code.",
-        "danger",
-      );
-    }
-  }
-
-  return (
-    <Phone>
-      <div className="flex min-h-full flex-col pb-[calc(40px+var(--safe-bottom))]">
-        <div className="px-[30px] pt-[88px] text-center">
-          <div className="mx-auto flex h-[72px] w-[72px] items-center justify-center rounded-[24px] border border-white/30 bg-white/18 anim-pop-in">
-            <IconMail className="text-white" />
-          </div>
-          <h1 className="mt-[22px] text-[27px] font-bold leading-[1.2] tracking-[-0.025em]">
-            Confirm your GIM email
-          </h1>
-          <p className="mt-2.5 text-[14px] leading-[1.55] text-white/62">
-            We sent a link to <strong className="font-semibold text-white">{email}</strong>. Booking
-            opens the moment you tap it.
-          </p>
-        </div>
-        <div className="mx-5 mt-7 rounded-[26px] border border-white/26 bg-white/16 p-[18px] backdrop-blur-[26px]">
-          <div className="text-[11px] tracking-[0.06em] text-white/60">MEANWHILE YOU CAN</div>
-          <div className="mt-[9px] text-[14px] leading-[1.6] text-white">
-            See what&apos;s free · browse any day in the next 7 · check which hostels you&apos;re
-            allowed to use
-          </div>
-        </div>
-        <div className="mx-5 mt-auto flex flex-col gap-2.5 pt-8">
-          <AuthField
-            label="6-DIGIT CODE"
-            value={otp}
-            inputMode="numeric"
-            maxLength={6}
-            placeholder="000000"
-            status={otp.length === 6 ? "ok" : "plain"}
-            onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-          />
-          <button
-            type="button"
-            onClick={verifyCode}
-            className="flex h-[52px] items-center justify-center rounded-[26px] bg-white text-[15px] font-semibold text-navy disabled:opacity-50"
-            disabled={busy || otp.length !== 6}
-          >
-            {busy ? "Confirming…" : "Confirm email"}
-          </button>
-          <button
-            type="button"
-            onClick={resend}
-            className="flex h-[52px] items-center justify-center rounded-[26px] border border-white/28 bg-white/16 text-[15px] font-semibold text-white"
-          >
-            Resend code
-          </button>
-          <FieldButton
-            variant="ghost"
-            className="h-[52px] w-full rounded-[26px] text-[15px] font-semibold"
-            onClick={() => router.push("/book")}
-          >
-            Browse without booking
-          </FieldButton>
-        </div>
-        <p className="mt-4 px-[30px] text-center text-[12.5px] leading-[1.5] text-white/50">
-          Wrong address? Only emails on your institute&apos;s list work.
-        </p>
       </div>
     </Phone>
   );

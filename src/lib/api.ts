@@ -546,18 +546,6 @@ export const api = {
       ),
     logout: (refresh: string) =>
       request<void>("/auth/logout", { method: "POST", body: { refresh } }),
-    verifyEmail: (body: { token?: string; email?: string; otp?: string }) =>
-      request<{ emailVerified?: boolean }>("/auth/verify-email", {
-        method: "POST",
-        body,
-        auth: false,
-      }),
-    resendVerification: (email: string) =>
-      request<void>("/auth/resend-verification", {
-        method: "POST",
-        body: { email },
-        auth: false,
-      }),
     forgotPassword: (email: string) =>
       request<void>("/auth/forgot-password", {
         method: "POST",

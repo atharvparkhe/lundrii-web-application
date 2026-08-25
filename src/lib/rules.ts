@@ -5,13 +5,6 @@ export const ADVANCE_WINDOW_DAYS = 7;
 export const LATE_CANCEL_CUTOFF_HOURS = 6;
 
 export function demoBlock(mode: DemoMode): RuleBlock | null {
-  if (mode === "unverified") {
-    return {
-      rule: "unverified",
-      title: "Email not confirmed yet",
-      body: "Confirm your email before booking.",
-    };
-  }
   if (mode === "suspended") {
     return {
       rule: "suspended",

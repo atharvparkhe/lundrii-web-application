@@ -103,7 +103,7 @@ the app launches standalone at `/today` and opens offline to a fallback screen.
 
 | Area | Paths |
 |------|--------|
-| Auth | `/auth/sign-in`, `/auth/sign-up`, `/auth/domain-rejected`, `/auth/verify`, `/auth/forgot`, `/auth/reset` |
+| Auth | `/auth/sign-in`, `/auth/sign-up`, `/auth/domain-rejected`, `/auth/forgot`, `/auth/reset` |
 | Tabs | `/home`, `/book`, `/bookings`, `/profile` |
 | Book | `/book/:machineId/day`, `/dryer`, `/confirm` → dryer, `/success`, `/exchange` |
 | Manage | `/bookings/move` |

@@ -104,28 +104,15 @@ export function HomeScreen() {
   const upcoming = app.upcoming.slice(0, 2);
   const incomingCount = app.pendingIncomingExchangeCount;
 
-  const liveUnverified = app.live && !app.profile.emailVerified;
   const liveSuspended = app.live && app.profile.suspended;
   const banner =
-    liveUnverified
+    liveSuspended
       ? {
-          title: "Email not confirmed yet",
-          body: "Tap the link we emailed you to start booking.",
-          href: "/auth/verify" as string | null,
-        }
-      : liveSuspended
-        ? {
-            title: app.profile.suspensionEnds
-              ? `Booking paused until ${shortDate(app.profile.suspensionEnds)}`
-              : "Booking paused",
-            body: app.profile.suspensionReason ?? "Applied by the committee. You can still browse.",
-            href: null,
-          }
-        : app.demoMode === "unverified" && !app.live
-      ? {
-          title: "Email not confirmed yet",
-          body: "Tap the link we emailed you to start booking.",
-          href: "/auth/verify",
+          title: app.profile.suspensionEnds
+            ? `Booking paused until ${shortDate(app.profile.suspensionEnds)}`
+            : "Booking paused",
+          body: app.profile.suspensionReason ?? "Applied by the committee. You can still browse.",
+          href: null as string | null,
         }
       : app.demoMode === "suspended" && !app.live
         ? { title: "Booking paused until 6 Aug", body: "Applied by the committee after ticket #427. You can still browse.", href: null }

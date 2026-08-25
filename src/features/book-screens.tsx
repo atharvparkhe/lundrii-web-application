@@ -31,6 +31,8 @@ export function BookScreen() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const deepMachineId = searchParams.get("machineId");
+  const offerIdParam = searchParams.get("offerId");
+  const modeParam = searchParams.get("mode");
   const { setFloor, machineById } = app;
   const canBook = app.signedIn;
 
@@ -105,6 +107,10 @@ export function BookScreen() {
       setRuleOpen(true);
       return;
     }
+    if (slot.state === "running") {
+      app.showToast("That slot has already started.", "warn");
+      return;
+    }
 
     const block = app.guardAction();
     if (block) {
@@ -112,11 +118,22 @@ export function BookScreen() {
       return;
     }
 
-    const wantsExchange = slot.state === "taken" || slot.state === "running";
+    if (slot.state === "taken") {
+      const swapFromOffer =
+        modeParam === "swap" && Boolean(offerIdParam);
+      const qs = new URLSearchParams({
+        machineId: machine.id,
+        hour: String(slot.hour),
+        day: String(dayIdx),
+        mode: swapFromOffer ? "swap" : "request",
+      });
+      if (swapFromOffer && offerIdParam) qs.set("offerId", offerIdParam);
+      router.push(`/exchange?${qs.toString()}`);
+      return;
+    }
+
     router.push(
-      wantsExchange
-        ? `/exchange?machineId=${machine.id}&hour=${slot.hour}`
-        : `/confirm?machineId=${machine.id}&hour=${slot.hour}&day=${dayIdx}`,
+      `/confirm?machineId=${machine.id}&hour=${slot.hour}&day=${dayIdx}`,
     );
   }
 

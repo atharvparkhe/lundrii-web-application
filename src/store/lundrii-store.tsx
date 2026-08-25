@@ -17,8 +17,10 @@ import {
   clearTokens,
   getAccess,
   getRefresh,
+  request,
   setTokens,
   setUnauthorizedHandler,
+  type ExchangeDto,
   type MeDto,
 } from "@/lib/api";
 import { mapAuthError, type AuthFail } from "@/lib/auth-redirect";
@@ -405,11 +407,18 @@ export type LundriiStore = {
   approveExchange: (
     id: string,
   ) => Promise<{ ok: true } | { ok: false; reason: string }>;
-  rejectExchange: (id: string, optionId?: string, note?: string) => Promise<void>;
-  withdrawSent: (id: string) => Promise<void>;
+  rejectExchange: (
+    id: string,
+    optionId?: string,
+    note?: string,
+  ) => Promise<{ ok: true } | { ok: false; reason?: string }>;
+  withdrawSent: (
+    id: string,
+  ) => Promise<{ ok: true } | { ok: false; reason?: string }>;
   sendExchange: (input: {
     machineId: string;
     hour: number;
+    dayIdx: number;
     isSwap: boolean;
     offerId?: string;
   }) => Promise<{ ok: true } | { ok: false; error: string }>;
@@ -557,14 +566,22 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
     if (!getAccess()) return;
     try {
       const days = liveDays();
-      const [upcomingDtos, pastDtos, exchangeDtos] = await Promise.all([
-        api.bookings.list("upcoming").catch(() => []),
-        api.bookings.list("past").catch(() => []),
-        api.exchanges.list().catch(() => []),
-      ]);
-      const pending = exchangeDtos.filter(isPendingExchange);
-      const incoming = pending.filter((e) => e.direction === "incoming");
-      const outgoing = pending.filter((e) => e.direction === "outgoing");
+      const listExchanges = async (direction: "incoming" | "outgoing") => {
+        const data = await request<
+          { count: number; results: ExchangeDto[] } | ExchangeDto[]
+        >(`/exchanges?direction=${direction}`);
+        if (Array.isArray(data)) return data;
+        return data?.results ?? [];
+      };
+      const [upcomingDtos, pastDtos, incomingDtos, outgoingDtos] =
+        await Promise.all([
+          api.bookings.list("upcoming").catch(() => []),
+          api.bookings.list("past").catch(() => []),
+          listExchanges("incoming").catch(() => []),
+          listExchanges("outgoing").catch(() => []),
+        ]);
+      const incoming = incomingDtos.filter(isPendingExchange);
+      const outgoing = outgoingDtos.filter(isPendingExchange);
       dispatch({
         type: "setState",
         patch: {
@@ -710,8 +727,8 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
       if (!state.profile.emailVerified) {
         return {
           rule: "unverified",
-          title: "Confirm your email first",
-          body: "Tap the link we emailed you to start booking.",
+          title: "Email not verified",
+          body: "Your account isn't verified for booking yet. Contact your hostel committee if this looks wrong.",
         };
       }
       if (state.profile.suspended) {
@@ -1161,13 +1178,13 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
           await api.exchanges.reject(id, reason);
           await loadHome();
           await loadBookings();
+          return { ok: true as const };
         } catch (err) {
-          showToast(
-            err instanceof ApiError ? err.message : "Couldn't reject that request.",
-            "danger",
-          );
+          const message =
+            err instanceof ApiError ? err.message : "Couldn't reject that request.";
+          showToast(message, "danger");
+          return { ok: false as const, reason: message };
         }
-        return;
       }
       dispatch({
         type: "setState",
@@ -1175,6 +1192,7 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
           exchanges: state.exchanges.filter((e) => e.id !== id),
         },
       });
+      return { ok: true as const };
     },
     withdrawSent: async (id) => {
       if (getAccess()) {
@@ -1182,24 +1200,29 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
           await api.exchanges.withdraw(id);
           await loadHome();
           await loadBookings();
+          return { ok: true as const };
         } catch (err) {
-          showToast(
-            err instanceof ApiError ? err.message : "Couldn't withdraw that request.",
-            "danger",
-          );
+          const message =
+            err instanceof ApiError
+              ? err.message
+              : "Couldn't withdraw that request.";
+          showToast(message, "danger");
+          return { ok: false as const, reason: message };
         }
-        return;
       }
       dispatch({
         type: "setState",
         patch: { withdrawnSentIds: [...state.withdrawnSentIds, id] },
       });
+      return { ok: true as const };
     },
     sendExchange: async (input) => {
+      const days = liveDays();
+      const dayIdx = Math.max(0, Math.min(input.dayIdx, days.length - 1));
+      const day = days[dayIdx] ?? days[0];
+      const dayLabel = bookingDayLabel(dayIdx);
       if (getAccess()) {
         try {
-          const days = liveDays();
-          const day = days[0];
           const key = `${input.machineId}:${day.date}`;
           let slots = state.slotCache[key];
           if (!slots) {
@@ -1230,7 +1253,7 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
         }
       }
       const machine = state.machines.find((m) => m.id === input.machineId);
-      const slotLabel = `Today ${timeLabel(input.hour)} · ${machine?.name ?? "Washer"}`;
+      const slotLabel = `${dayLabel} ${timeLabel(input.hour)} · ${machine?.name ?? "Washer"}`;
       const offered = input.isSwap
         ? state.upcoming.find((b) => b.id === input.offerId) ??
           state.upcoming[0]
@@ -1258,7 +1281,7 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
           : null,
         wanted: {
           hour: input.hour,
-          dayLabel: "Today",
+          dayLabel,
           location: machine?.name ?? "",
           machineId: input.machineId,
           kind: machine?.kind === "dryer" ? "dryer" : "washer",

@@ -154,10 +154,29 @@ export function ExchangeDetailScreen() {
   const params = useParams<{ id: string }>();
   const id = params.id ?? "";
   const ex = app.exchangeById(id);
+  const [fetching, setFetching] = useState(() => app.live);
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectId, setRejectId] = useState("need_slot");
   const [note, setNote] = useState("");
+  const [rejectBusy, setRejectBusy] = useState(false);
+
+  useEffect(() => {
+    if (!app.live) {
+      setFetching(false);
+      return;
+    }
+    let cancelled = false;
+    setFetching(true);
+    void app.loadBookings().finally(() => {
+      if (!cancelled) setFetching(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [app.live, app.loadBookings]);
+
+  if (fetching && !ex) return <ExchangesSkeleton />;
 
   if (!ex) {
     return (
@@ -293,10 +312,20 @@ export function ExchangeDetailScreen() {
           <FieldButton
             variant="danger"
             className="mt-4 w-full"
-            onClick={() => {
-              void app.rejectExchange(ex.id, rejectId, note);
-              app.showToast("Rejected. They won't see a reason unless you wrote one.", "neutral");
-              router.push("/exchanges");
+            onClick={async () => {
+              if (rejectBusy) return;
+              setRejectBusy(true);
+              try {
+                const res = await app.rejectExchange(ex.id, rejectId, note);
+                if (!res.ok) return;
+                app.showToast(
+                  "Rejected. They won't see a reason unless you wrote one.",
+                  "neutral",
+                );
+                router.push("/exchanges");
+              } finally {
+                setRejectBusy(false);
+              }
             }}
           >
             Reject request
@@ -340,7 +369,26 @@ export function SentExchangeScreen() {
   const params = useParams<{ id: string }>();
   const id = params.id ?? "";
   const sent = app.sentById(id);
+  const [fetching, setFetching] = useState(() => app.live);
   const [open, setOpen] = useState(false);
+  const [withdrawBusy, setWithdrawBusy] = useState(false);
+
+  useEffect(() => {
+    if (!app.live) {
+      setFetching(false);
+      return;
+    }
+    let cancelled = false;
+    setFetching(true);
+    void app.loadBookings().finally(() => {
+      if (!cancelled) setFetching(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [app.live, app.loadBookings]);
+
+  if (fetching && !sent) return <ExchangesSkeleton />;
 
   if (!sent) {
     return (
@@ -394,10 +442,17 @@ export function SentExchangeScreen() {
           <FieldButton
             variant="navy"
             className="mt-5 w-full"
-            onClick={() => {
-              void app.withdrawSent(sent.id);
-              app.showToast("Request withdrawn.", "neutral");
-              router.push("/exchanges?tab=sent");
+            onClick={async () => {
+              if (withdrawBusy) return;
+              setWithdrawBusy(true);
+              try {
+                const res = await app.withdrawSent(sent.id);
+                if (!res.ok) return;
+                app.showToast("Request withdrawn.", "neutral");
+                router.push("/exchanges?tab=sent");
+              } finally {
+                setWithdrawBusy(false);
+              }
             }}
           >
             Withdraw

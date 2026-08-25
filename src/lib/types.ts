@@ -14,7 +14,7 @@ export type TicketKind = "maintenance";
 export type TicketStatus = "open" | "resolved";
 export type NotificationKind = "info" | "warn" | "danger" | "success";
 export type Gender = "male" | "female";
-export type DemoMode = "normal" | "unverified" | "suspended" | "offline";
+export type DemoMode = "normal" | "suspended" | "offline";
 
 /**
  * What a signed-out visitor was trying to do when they hit the sign-in wall.

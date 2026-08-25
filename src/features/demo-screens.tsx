@@ -35,7 +35,6 @@ const FULL: Entry[] = [
   { title: "Machine offline", blurb: "Released booking · closest replacements", path: "/demo/machine-offline" },
   { title: "Suspended", blurb: "Desaturated field · browse-only", path: "/demo/suspended" },
   { title: "Partial success", blurb: "Washer booked, dryer taken first", path: "/demo/partial-success" },
-  { title: "Unverified", blurb: "Confirm email before booking", path: "/demo/unverified" },
   { title: "Offline", blurb: "Stale cache from 09:12", path: "/demo/offline" },
 ];
 
@@ -265,34 +264,6 @@ export function PartialSuccessDemo() {
           <Link href="/book/d1/day"><FieldButton variant="white" className="w-full">Find another dryer</FieldButton></Link>
           <Link href="/bookings"><FieldButton variant="ghost" className="w-full">View bookings</FieldButton></Link>
         </div>
-      </div>
-    </Phone>
-  );
-}
-
-export function UnverifiedDemo() {
-  const app = useLundrii();
-  const router = useRouter();
-  return (
-    <Phone>
-      <ScreenHeader title="" backHref="/demo" />
-      <div className="px-8 pt-8 text-center">
-        <h1 className="text-[26px] font-bold">Confirm your email before booking</h1>
-        <p className="mt-2 text-[14px] text-white/65">
-          You can browse machines. Claiming a slot waits until the link in your inbox is opened.
-        </p>
-      </div>
-      <div className="mt-auto px-5 pb-8">
-        <FieldButton
-          variant="white"
-          className="w-full"
-          onClick={() => {
-            app.setDemoMode("unverified");
-            router.push("/auth/verify");
-          }}
-        >
-          Open verify screen
-        </FieldButton>
       </div>
     </Phone>
   );

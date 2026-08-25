@@ -210,7 +210,7 @@ export function BookingsScreen() {
                         type="button"
                         onClick={() =>
                           router.push(
-                            `/exchange?machineId=m1&hour=11&offerId=${b.id}&mode=swap`,
+                            `/book?offerId=${encodeURIComponent(b.id)}&mode=swap`,
                           )
                         }
                         className="flex-1 rounded-2xl bg-white/70 py-2.5 text-center text-[13px] font-semibold"

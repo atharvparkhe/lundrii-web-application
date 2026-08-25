@@ -6,10 +6,9 @@ import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 const AUTH_ROUTE_ORDER: Record<string, number> = {
   "/auth/sign-in": 0,
   "/auth/sign-up": 1,
-  "/auth/verify": 2,
-  "/auth/forgot": 3,
-  "/auth/reset": 4,
-  "/auth/domain-rejected": 5,
+  "/auth/forgot": 2,
+  "/auth/reset": 3,
+  "/auth/domain-rejected": 4,
 };
 
 function routeIndex(pathname: string): number {

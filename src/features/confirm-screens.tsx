@@ -14,7 +14,7 @@ import {
   ToggleIndicator,
   WhiteSheet,
 } from "@/components/ui";
-import { clampDayIdx } from "@/lib/days";
+import { clampDayIdx, bookingDayLabel } from "@/lib/days";
 import { liveDays } from "@/lib/live";
 import { initials, kindLabel, padHour, timeRange } from "@/lib/format";
 import { useLundrii } from "@/store/lundrii-store";
@@ -571,36 +571,46 @@ export function ExchangeComposeScreen() {
   const q = useSearchParams();
   const machineId = q.get("machineId") ?? "";
   const hour = Number.parseInt(q.get("hour") ?? "11", 10) || 11;
-  const initialSwap = (q.get("mode") ?? "swap") !== "request";
+  const dayIdx = clampDayIdx(q.get("day"));
+  const initialSwap = q.get("mode") === "swap";
   const offerFromQuery = q.get("offerId") ?? "";
   const [swapMode, setSwapMode] = useState(initialSwap);
   const [offerId, setOfferId] = useState<string | null>(
-    offerFromQuery || app.upcoming[0]?.id || null,
+    offerFromQuery || (initialSwap ? app.upcoming[0]?.id || null : null),
   );
+  const [sending, setSending] = useState(false);
   const machine = app.machineById(machineId);
   const hourLabel = padHour(hour);
+  const dayLabel = bookingDayLabel(dayIdx);
   const { loadSlots } = app;
   useEffect(() => {
-    if (machineId) void loadSlots(machineId, 0);
-  }, [loadSlots, machineId]);
-  const slot = app.getSlots(machineId, 0).find((s) => s.hour === hour);
+    if (machineId) void loadSlots(machineId, dayIdx);
+  }, [loadSlots, machineId, dayIdx]);
+  const slot = app.getSlots(machineId, dayIdx).find((s) => s.hour === hour);
   const peerName = slot?.holder || "Someone";
   const peerInitials = initials(peerName);
   const peerFirst = peerName.trim().split(/\s+/)[0] || peerName;
 
   async function send() {
+    if (sending) return;
     const block = app.guardAction();
     if (block) {
       app.showToast(block.body, "warn");
       return;
     }
+    setSending(true);
     const res = await app.sendExchange({
       machineId,
       hour,
+      dayIdx,
       isSwap: swapMode,
       offerId: offerId ?? undefined,
     });
-    if (!res.ok) return;
+    if (!res.ok) {
+      setSending(false);
+      app.showToast(res.error, "warn");
+      return;
+    }
     app.showToast(`Sent to ${peerFirst}. They have until the slot starts.`);
     router.push("/exchanges?tab=sent");
   }
@@ -616,7 +626,7 @@ export function ExchangeComposeScreen() {
           <div className="min-w-0 flex-1">
             <div className="text-[15.5px] font-[650]">{peerName}</div>
             <div className="mt-0.5 text-[12.5px] text-white/62">
-              Today {hourLabel}:00 · {machine?.name ?? "Washer"}
+              {dayLabel} {hourLabel}:00 · {machine?.name ?? "Washer"}
             </div>
           </div>
         </div>
@@ -696,7 +706,7 @@ export function ExchangeComposeScreen() {
             variant="navy"
             className="mt-6 h-[52px] w-full rounded-[26px] text-[15px]"
             onClick={send}
-            disabled={swapMode && !offerId}
+            disabled={sending || (swapMode && !offerId)}
           >
             {swapMode ? "Send swap offer" : "Send request"}
           </FieldButton>

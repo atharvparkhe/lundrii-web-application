@@ -15,7 +15,6 @@ import { IconCheck, IconChevronRight } from "@/components/icons";
 import { initials } from "@/lib/format";
 import {
   api,
-  ApiError,
   type AssistantConnectionsDto,
   type AssistantProviderDto,
   type AssistantProviderId,
@@ -131,9 +130,6 @@ export function ProfileScreen() {
   const router = useRouter();
   const p = app.profile;
   const suspended = p.suspended;
-  const unverified =
-    (app.live && !p.emailVerified) || (app.demoMode === "unverified" && !app.live);
-  const [resendBusy, setResendBusy] = useState(false);
   const strikeCount = p.strikes.length;
   const [sheet, setSheet] = useState<
     "standing" | "out" | "ai-list" | "ai-detail" | null
@@ -267,49 +263,6 @@ export function ProfileScreen() {
             </div>
           </div>
         </div>
-
-        {unverified ? (
-          <GlassCard className="mx-5 mt-4 rounded-[26px] p-4">
-            <div className="text-[10.5px] font-bold tracking-[0.6px] text-warn-amber">
-              EMAIL NOT VERIFIED
-            </div>
-            <div className="mt-1 text-[16px] font-semibold">Email not verified</div>
-            <p className="mt-1 text-[12.5px] text-white/65">
-              Confirm your institute email to start booking.
-            </p>
-            <div className="mt-3 flex flex-col gap-2">
-              <button
-                type="button"
-                disabled={resendBusy || !p.email}
-                onClick={async () => {
-                  if (!p.email || resendBusy) return;
-                  setResendBusy(true);
-                  try {
-                    await api.auth.resendVerification(p.email);
-                    app.showToast("New code sent.");
-                  } catch (err) {
-                    app.showToast(
-                      err instanceof ApiError ? err.message : "Couldn't resend the code.",
-                      "danger",
-                    );
-                  } finally {
-                    setResendBusy(false);
-                  }
-                }}
-                className="flex h-[44px] items-center justify-center rounded-[22px] bg-white text-[14px] font-semibold text-navy disabled:opacity-50"
-              >
-                {resendBusy ? "Sending…" : "Resend verification email"}
-              </button>
-              <button
-                type="button"
-                onClick={() => router.push("/auth/verify")}
-                className="flex h-[44px] items-center justify-center rounded-[22px] border border-white/28 bg-white/16 text-[14px] font-semibold text-white"
-              >
-                Enter code
-              </button>
-            </div>
-          </GlassCard>
-        ) : null}
 
         {suspended ? (
           <GlassCard className="mx-5 mt-4 rounded-[26px] p-4">
