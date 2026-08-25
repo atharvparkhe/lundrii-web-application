@@ -199,7 +199,7 @@ export function HomeSkeleton() {
 export function BookSkeleton() {
   return (
     <Phone>
-      <div className="flex min-h-full min-w-0 flex-col">
+      <div className="flex h-full min-h-full min-w-0 flex-col">
         <div className="px-[22px] pt-[56px]">
           <Skeleton className="h-8 w-[168px] bg-white/20" />
         </div>
@@ -218,7 +218,7 @@ export function BookSkeleton() {
             />
           ))}
         </div>
-        <WhiteSheet className="mt-3 px-[18px] pb-6 pt-4">
+        <WhiteSheet className="mt-3 px-[18px] pb-[var(--safe-bottom)] pt-4">
           <div className="mb-[11px] flex items-center justify-between">
             <Skeleton className="h-3 w-[140px]" />
             <Skeleton className="h-3 w-[108px]" />

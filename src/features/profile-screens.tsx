@@ -23,8 +23,8 @@ import {
 import { shortDate } from "@/lib/live";
 import { useLundrii } from "@/store/lundrii-store";
 
-const PROVIDER_ORDER: AssistantProviderId[] = ["chatgpt", "claude"];
-const AI_CONNECTORS_ENABLED = false;
+const PROVIDER_ORDER: AssistantProviderId[] = ["claude", "chatgpt"];
+const AI_CONNECTORS_ENABLED = true;
 const WHATSAPP_BOOKING_ENABLED = false;
 
 const FALLBACK_PROVIDERS: Record<AssistantProviderId, AssistantProviderDto> = {
@@ -48,7 +48,7 @@ const FALLBACK_PROVIDERS: Record<AssistantProviderId, AssistantProviderDto> = {
     openUrl: "https://claude.ai/settings/connectors",
     steps: [
       "Open Claude",
-      "Settings → Connectors → add a connector",
+      "Settings → Connectors → Add custom connector",
       "Paste the MCP URL",
       "Approve Lundrii",
     ],
@@ -474,7 +474,8 @@ export function ProfileScreen() {
         <Sheet>
           <h2 className="text-[20px] font-bold">Connect to your AI provider</h2>
           <p className="mt-1 text-[12.5px] leading-relaxed text-navy/50">
-            Add Lundrii in ChatGPT or Claude. This tab cannot finish the connection for you.
+            Start with Claude: add Lundrii as a custom connector, then approve.
+            This tab cannot finish the connection for you.
           </p>
           <div className="mt-4 flex flex-col gap-2">
             {providers.map((pr) => (

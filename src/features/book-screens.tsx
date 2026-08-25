@@ -128,7 +128,7 @@ export function BookScreen() {
 
   return (
     <Phone variant={kind === "dryer" ? "dryer" : "field"}>
-      <div className="flex min-h-full min-w-0 flex-col">
+      <div className="flex h-full min-h-full min-w-0 flex-col">
         <div className="flex items-end justify-between px-[22px] pt-[56px]">
           <h1 className="text-[28px] font-bold tracking-[-0.03em]">Book a slot</h1>
           {canBook ? null : (
@@ -167,7 +167,7 @@ export function BookScreen() {
           onPick={(i) => setDayIdx(i)}
         />
 
-        <WhiteSheet className="mt-3 px-[18px] pb-6 pt-4">
+        <WhiteSheet className="mt-3 px-[18px] pb-[var(--safe-bottom)] pt-4">
           <SlotLegend openCount={openCount} pastCount={pastCount} accent={accent} />
           <div
             className={`flex min-h-0 flex-1 flex-col gap-[7px] overflow-y-auto ${

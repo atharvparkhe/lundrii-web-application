@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { AppRouteTransition } from "./app-route-transition";
 import { IconBook, IconBookings, IconHome, IconProfile } from "./icons";
 import { RouteSkeleton } from "@/components/skeleton";
@@ -50,7 +50,50 @@ function tabIndex(path: string): number {
 }
 
 export function DeviceFrame({ children }: { children: ReactNode }) {
-  return <div className="app-frame">{children}</div>;
+  const ref = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const visual = window.visualViewport;
+
+    const sync = () => {
+      const vv = window.visualViewport;
+      const keyboardOpen =
+        !!vv && window.innerHeight - vv.height > 80;
+      if (keyboardOpen && vv) {
+        el.style.top = `${vv.offsetTop}px`;
+        el.style.left = `${vv.offsetLeft}px`;
+        el.style.width = `${vv.width}px`;
+        el.style.height = `${vv.height}px`;
+        el.style.right = "auto";
+        el.style.bottom = "auto";
+      } else {
+        el.style.top = "0px";
+        el.style.right = "0px";
+        el.style.bottom = "0px";
+        el.style.left = "0px";
+        el.style.width = "";
+        el.style.height = "";
+      }
+    };
+
+    sync();
+    window.addEventListener("resize", sync);
+    visual?.addEventListener("resize", sync);
+    visual?.addEventListener("scroll", sync);
+    return () => {
+      window.removeEventListener("resize", sync);
+      visual?.removeEventListener("resize", sync);
+      visual?.removeEventListener("scroll", sync);
+    };
+  }, []);
+
+  return (
+    <div ref={ref} className="app-frame">
+      {children}
+    </div>
+  );
 }
 
 function TabBar({ active }: { active: number }) {

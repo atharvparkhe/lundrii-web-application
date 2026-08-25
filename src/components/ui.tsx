@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   useEffect,
+  useRef,
   useState,
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
@@ -414,6 +415,8 @@ export function Overlay({
   children: ReactNode;
 }) {
   const [host, setHost] = useState<Element | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     setHost(document.querySelector(".app-frame") ?? document.body);
@@ -421,34 +424,92 @@ export function Overlay({
 
   useEffect(() => {
     if (!open) return;
-    const prevBody = document.body.style.overflow;
+
+    const frame = document.querySelector(".app-frame");
     const screens = Array.from(
       document.querySelectorAll<HTMLElement>(".phone-screen"),
     );
-    const prevScreens = screens.map((el) => el.style.overflow);
+    frame?.classList.add("is-overlay-open");
+
+    const prevBody = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    screens.forEach((el) => {
+
+    const locked: { el: HTMLElement; overflow: string; overflowY: string }[] =
+      [];
+    const freeze = (el: HTMLElement) => {
+      locked.push({
+        el,
+        overflow: el.style.overflow,
+        overflowY: el.style.overflowY,
+      });
       el.style.overflow = "hidden";
+      el.style.overflowY = "hidden";
+    };
+    screens.forEach((screen) => {
+      freeze(screen);
+      screen.querySelectorAll<HTMLElement>("*").forEach((node) => {
+        const oy = window.getComputedStyle(node).overflowY;
+        if (oy === "auto" || oy === "scroll") freeze(node);
+      });
     });
+
+    const allowedScroller = (target: EventTarget | null) => {
+      if (!(target instanceof Element)) return null;
+      const area = target.closest("[data-scroll-lock-allow]");
+      return area instanceof HTMLElement ? area : null;
+    };
+
+    const blockBackgroundScroll = (e: Event) => {
+      const area = allowedScroller(e.target);
+      if (area && area.scrollHeight > area.clientHeight + 1) return;
+      e.preventDefault();
+    };
+
+    document.addEventListener("touchmove", blockBackgroundScroll, {
+      passive: false,
+    });
+    document.addEventListener("wheel", blockBackgroundScroll, {
+      passive: false,
+    });
+
+    const closeIfBackgroundScrolls = () => {
+      onCloseRef.current?.();
+    };
+    screens.forEach((screen) => {
+      screen.addEventListener("scroll", closeIfBackgroundScrolls);
+    });
+
     return () => {
+      frame?.classList.remove("is-overlay-open");
       document.body.style.overflow = prevBody;
-      screens.forEach((el, i) => {
-        el.style.overflow = prevScreens[i] ?? "";
+      locked.forEach(({ el, overflow, overflowY }) => {
+        el.style.overflow = overflow;
+        el.style.overflowY = overflowY;
+      });
+      document.removeEventListener("touchmove", blockBackgroundScroll);
+      document.removeEventListener("wheel", blockBackgroundScroll);
+      screens.forEach((screen) => {
+        screen.removeEventListener("scroll", closeIfBackgroundScrolls);
       });
     };
   }, [open]);
 
   if (!open || !host) return null;
 
-  // Portal + fixed: sheets must sit on the viewport, not inside .phone-screen
-  // (that column scrolls, so absolute overlays drift to the top with the page).
+  // Portal into .app-frame (not .phone-screen): the column scrolls, so an
+  // overlay left inside it would drift with the page.
   return createPortal(
-    <div className="app-column-inset fixed inset-y-0 z-50 flex items-end justify-center overflow-hidden">
+    <div className="app-column-inset absolute inset-y-0 z-50 flex items-end justify-center overflow-hidden overscroll-none">
       <button
         type="button"
         aria-label="Close"
-        className="absolute inset-0 bg-[rgba(3,10,30,.55)] backdrop-blur-[2px] animate-[fadeIn_.22s_ease]"
+        className="absolute inset-0 touch-none bg-[rgba(3,10,30,.55)] backdrop-blur-[2px] animate-[fadeIn_.22s_ease]"
         onClick={onClose}
+        onTouchMove={(event) => {
+          event.preventDefault();
+          onClose?.();
+        }}
+        onWheel={() => onClose?.()}
       />
       {/* Cap height so tall sheets (hostel list, machine picker) scroll inside
           the sheet instead of spilling past the phone viewport. */}
@@ -489,7 +550,8 @@ export function SheetScroll({
 }) {
   return (
     <div
-      className={`-mx-1 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 [scrollbar-width:thin] ${className}`}
+      data-scroll-lock-allow
+      className={`-mx-1 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 touch-pan-y [scrollbar-width:thin] ${className}`}
       style={{ WebkitOverflowScrolling: "touch" }}
     >
       {children}

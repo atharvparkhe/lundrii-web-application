@@ -30,7 +30,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full bg-field-deep text-white">
+      <body className="h-full min-h-full bg-field-deep text-white">
         <Providers>{children}</Providers>
         <ServiceWorker />
       </body>
