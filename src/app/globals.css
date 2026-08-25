@@ -380,6 +380,18 @@
   animation: authExit 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
+.anim-tab-fade {
+  animation: fadeIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-tab-fade,
+  .anim-auth-enter-forward,
+  .anim-auth-enter-back {
+    animation: fadeIn 0.2s ease;
+  }
+}
+
 .anim-stagger-in {
   animation: staggerIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: calc(var(--i, 0) * 55ms);

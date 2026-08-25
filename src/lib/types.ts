@@ -174,6 +174,13 @@ export type SwapDoneResult = {
   lost: ExchangeSlotSnapshot;
 };
 
+export type ExchangeFailedResult = {
+  kind: ExchangeKind;
+  peerName: string;
+  headline: string;
+  body: string;
+};
+
 export type Ticket = {
   id: string;
   number: string;

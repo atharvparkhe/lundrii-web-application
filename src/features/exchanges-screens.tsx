@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ExchangesSkeleton } from "@/components/skeleton";
 import {
   BackChip,
   CheckCircle,
@@ -10,8 +11,10 @@ import {
   HourChip,
   Overlay,
   Phone,
+  ScreenHeader,
   Segmented,
   Sheet,
+  StatusChip,
   WhiteSheet,
 } from "@/components/ui";
 import { padHour } from "@/lib/format";
@@ -33,10 +36,24 @@ export function ExchangesInboxScreen() {
   const router = useRouter();
   const q = useSearchParams();
   const tab = q.get("tab") === "sent" ? 1 : 0;
+  const [fetching, setFetching] = useState(() => app.live);
 
   useEffect(() => {
-    if (app.live) void app.loadBookings();
+    if (!app.live) {
+      setFetching(false);
+      return;
+    }
+    let cancelled = false;
+    setFetching(true);
+    void app.loadBookings().finally(() => {
+      if (!cancelled) setFetching(false);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [app.live, app.loadBookings]);
+
+  if (fetching) return <ExchangesSkeleton />;
 
   function setTab(i: number) {
     if (i === 1) router.replace("/exchanges?tab=sent");
@@ -229,7 +246,7 @@ export function ExchangeDetailScreen() {
             onClick={async () => {
               const res = await app.approveExchange(ex.id);
               if (!res.ok) {
-                router.push("/demo/exchange-failed");
+                router.push("/exchanges/failed");
                 return;
               }
               if (ex.kind === "swap") router.push("/exchanges/swap-done");
@@ -435,6 +452,44 @@ export function SwapDoneScreen() {
           </Link>
           <Link href="/exchanges">
             <FieldButton variant="ghost" className="w-full">Inbox</FieldButton>
+          </Link>
+        </div>
+      </div>
+    </Phone>
+  );
+}
+
+export function ExchangeFailedScreen() {
+  const app = useLundrii();
+  const result = app.lastExchangeFailed;
+  if (!result) {
+    return (
+      <Phone>
+        <div className="p-8">Nothing to show.</div>
+      </Phone>
+    );
+  }
+  const secondary =
+    result.kind === "swap"
+      ? { label: "Find another slot", href: "/book" }
+      : { label: "View bookings", href: "/bookings" };
+  return (
+    <Phone variant="compact">
+      <ScreenHeader title="" backHref="/exchanges" />
+      <div className="mt-auto p-2.5">
+        <div className="rounded-[36px] bg-white p-[22px] text-navy">
+          <StatusChip label="FAILED" tone="danger" />
+          <h1 className="mt-3 text-[22px] font-bold tracking-[-0.44px]">{result.headline}</h1>
+          <p className="mt-2 text-[13.5px] leading-relaxed text-navy/55">{result.body}</p>
+          <Link href="/exchanges">
+            <FieldButton variant="navy" className="mt-5 h-[52px] w-full rounded-[26px]">
+              Back to inbox
+            </FieldButton>
+          </Link>
+          <Link href={secondary.href}>
+            <FieldButton variant="soft" className="mt-2 h-[52px] w-full rounded-[26px]">
+              {secondary.label}
+            </FieldButton>
           </Link>
         </div>
       </div>

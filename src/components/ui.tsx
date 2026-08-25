@@ -39,7 +39,7 @@ export function Phone({
   return (
     <div className={`app-surface ${cls}`}>
       <div
-        className={`phone-screen flex flex-col anim-scr-in${exiting ? " anim-auth-exit" : ""} ${className}`}
+        className={`phone-screen flex flex-col${exiting ? " anim-auth-exit" : ""} ${className}`}
       >
         {children}
       </div>

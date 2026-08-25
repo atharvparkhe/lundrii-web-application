@@ -2,6 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BookSkeleton, SkeletonSlotRow } from "@/components/skeleton";
 import { SlotRow } from "@/components/slot-row";
 import { FieldButton, Overlay, Phone, Sheet, StatusChip, WhiteSheet } from "@/components/ui";
 import { machineFloor } from "@/lib/format";
@@ -119,6 +120,12 @@ export function BookScreen() {
     );
   }
 
+  if (!machine && app.loading) {
+    return <BookSkeleton />;
+  }
+
+  const slotsPending = Boolean(machine && !app.hasLoadedSlots(machine.id, dayIdx));
+
   return (
     <Phone variant={kind === "dryer" ? "dryer" : "field"}>
       <div className="flex min-h-full min-w-0 flex-col">
@@ -171,10 +178,6 @@ export function BookScreen() {
               <p className="py-10 text-center text-[13px] text-navy/45">
                 {app.scheduleError}
               </p>
-            ) : app.loading && !machine ? (
-              <p className="py-10 text-center text-[13px] text-navy/45">
-                Loading today&apos;s machines…
-              </p>
             ) : machine ? (
               <>
                 {previousSlots.length > 0 ? (
@@ -194,11 +197,13 @@ export function BookScreen() {
                     </span>
                   </button>
                 ) : null}
-                {listedSlots.length === 0 ? (
+                {slotsPending ? (
+                  Array.from({ length: 8 }, (_, i) => (
+                    <SkeletonSlotRow key={i} />
+                  ))
+                ) : listedSlots.length === 0 ? (
                   <p className="py-10 text-center text-[13px] text-navy/45">
-                    {machine && !app.hasLoadedSlots(machine.id, dayIdx)
-                      ? "Loading slots…"
-                      : "No slots for this day yet."}
+                    No slots for this day yet.
                   </p>
                 ) : (
                   listedSlots.map((slot) => (
@@ -277,9 +282,5 @@ export function DayScreen() {
     router.replace("/book");
   }, [machineById, machineId, router, setFloor]);
 
-  return (
-    <Phone>
-      <div className="p-8 text-white/80">Opening schedule…</div>
-    </Phone>
-  );
+  return <BookSkeleton />;
 }

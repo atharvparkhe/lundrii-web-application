@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BookingsSkeleton } from "@/components/skeleton";
 import {
   BackChip,
   EmptyCard,
@@ -31,11 +32,25 @@ export function BookingsScreen() {
   const router = useRouter();
   const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
   const [openRequestId, setOpenRequestId] = useState<string | null>(null);
+  const [fetching, setFetching] = useState(() => app.live);
   const requests = app.exchanges;
 
   useEffect(() => {
-    if (app.live) void app.loadBookings();
+    if (!app.live) {
+      setFetching(false);
+      return;
+    }
+    let cancelled = false;
+    setFetching(true);
+    void app.loadBookings().finally(() => {
+      if (!cancelled) setFetching(false);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [app.live, app.loadBookings]);
+
+  if (fetching) return <BookingsSkeleton />;
 
   const subtitle = `${
     app.upcoming.length ? `${app.upcoming.length} upcoming` : "Nothing upcoming"

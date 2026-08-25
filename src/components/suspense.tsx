@@ -2,6 +2,12 @@
 
 import { Suspense, type ReactNode } from "react";
 
-export function AwaitSearch({ children }: { children: ReactNode }) {
-  return <Suspense fallback={null}>{children}</Suspense>;
+export function AwaitSearch({
+  children,
+  fallback = null,
+}: {
+  children: ReactNode;
+  fallback?: ReactNode;
+}) {
+  return <Suspense fallback={fallback}>{children}</Suspense>;
 }

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ProfileSkeleton } from "@/components/skeleton";
 import {
   FieldButton,
   GlassCard,
@@ -246,6 +247,10 @@ export function ProfileScreen() {
     : strikeCount
       ? p.strikes.join(" · ")
       : goodStanding;
+
+  if (app.loading && !app.profile.name) {
+    return <ProfileSkeleton />;
+  }
 
   return (
     <Phone variant={suspended ? "suspended" : "field"}>

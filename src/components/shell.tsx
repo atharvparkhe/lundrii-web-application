@@ -2,7 +2,9 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
+import { AppRouteTransition } from "./app-route-transition";
 import { IconBook, IconBookings, IconHome, IconProfile } from "./icons";
+import { RouteSkeleton } from "@/components/skeleton";
 import { ToastHost } from "./ui";
 import { useLundrii } from "@/store/lundrii-store";
 
@@ -113,14 +115,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (!hydrated || (!signedIn && !isPublic)) {
     return (
       <DeviceFrame>
-        <div className="app-surface field-gradient" />
+        <RouteSkeleton pathname={pathname} />
       </DeviceFrame>
     );
   }
 
   return (
     <DeviceFrame>
-      {children}
+      <AppRouteTransition>{children}</AppRouteTransition>
       {showTabs ? <TabBar active={active} /> : null}
       <ToastHost />
     </DeviceFrame>

@@ -34,6 +34,7 @@ import type {
   SentExchangeDetail,
   StudentProfile,
   SwapDoneResult,
+  ExchangeFailedResult,
   Ticket,
   TicketStatus,
 } from "@/lib/types";
@@ -547,6 +548,26 @@ export function swapDoneFromIncoming(request: ExchangeRequest): SwapDoneResult {
       dayLabel: "",
       location: request.theyTakeSub,
     },
+  };
+}
+
+export function exchangeFailedFromIncoming(
+  request: ExchangeRequest,
+  reason?: string | null,
+): ExchangeFailedResult {
+  const peerName = firstName(request.name);
+  const headline =
+    request.kind === "swap"
+      ? "The swap couldn't go through"
+      : "The slot couldn't be handed over";
+  const trimmed = (reason ?? "").trim();
+  return {
+    kind: request.kind,
+    peerName,
+    headline,
+    body: trimmed
+      ? trimmed
+      : `${peerName} is no longer able to take ${request.theyTake}. Your slot is unchanged. Both of you were told.`,
   };
 }
 

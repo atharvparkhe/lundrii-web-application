@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { IconChevronDown } from "@/components/icons";
+import { TicketDetailSkeleton, TicketsListSkeleton } from "@/components/skeleton";
 import {
   BackChip,
   CheckCircle,
@@ -12,6 +13,7 @@ import {
   Overlay,
   Phone,
   Sheet,
+  SheetScroll,
   WhiteSheet,
 } from "@/components/ui";
 import type { Machine, MachineKind, Ticket } from "@/lib/types";
@@ -56,10 +58,27 @@ function ProtoHeader({ title, backHref }: { title: string; backHref: string }) {
 
 export function TicketsListScreen() {
   const app = useLundrii();
+  const [fetching, setFetching] = useState(() => app.live);
 
   useEffect(() => {
-    if (app.live) void app.loadTickets();
+    if (!app.live) {
+      setFetching(false);
+      return;
+    }
+    let cancelled = false;
+    setFetching(true);
+    void app.loadTickets().finally(() => {
+      if (!cancelled) setFetching(false);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [app.live, app.loadTickets]);
+
+  if (fetching) {
+    return <TicketsListSkeleton />;
+  }
+
   return (
     <Phone variant="compact">
       <ProtoHeader title="Your tickets" backHref="/profile" />
@@ -311,43 +330,47 @@ export function MaintenanceReportScreen() {
 
       <Overlay open={floorOpen} onClose={() => setFloorOpen(false)}>
         <Sheet>
-          <div className="text-[20px] font-bold tracking-[-0.02em]">Choose a machine</div>
-          <p className="mt-1.5 text-[13px] leading-snug text-navy/50">
-            {app.selectedHostelName} · only machines in this hostel.
-          </p>
-          <div className="mt-4 flex flex-col gap-[9px]">
-            {machines.map((m) => {
-              const on = selected?.id === m.id;
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => {
-                    setMachineId(m.id);
-                    app.setFloor(m.name);
-                    setFloorOpen(false);
-                  }}
-                  className={`flex items-center justify-between gap-3 rounded-[20px] px-4 py-[15px] text-left ${
-                    on
-                      ? dryer
-                        ? "border-[1.5px] border-dryer-amber/42 bg-dryer-amber/8"
-                        : "border-[1.5px] border-success/42 bg-success/8"
-                      : "border-[1.5px] border-transparent bg-navy/4"
-                  } ${m.status === "offline" ? "opacity-60" : ""}`}
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[15px] font-[650]">{m.name}</div>
-                    <div className="mt-0.5 text-[12px] text-navy/50">{m.subtitle}</div>
-                  </div>
-                  <span
-                    className={`flex-none rounded-xl px-2.5 py-1 text-[11.5px] font-[650] ${optionStatusClass(m.status, dryer)}`}
-                  >
-                    {floorStatusLabel(m.status)}
-                  </span>
-                </button>
-              );
-            })}
+          <div className="shrink-0">
+            <div className="text-[20px] font-bold tracking-[-0.02em]">Choose a machine</div>
+            <p className="mt-1.5 text-[13px] leading-snug text-navy/50">
+              {app.selectedHostelName} · only machines in this hostel.
+            </p>
           </div>
+          <SheetScroll className="mt-4">
+            <div className="flex flex-col gap-[9px] pb-1">
+              {machines.map((m) => {
+                const on = selected?.id === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => {
+                      setMachineId(m.id);
+                      app.setFloor(m.name);
+                      setFloorOpen(false);
+                    }}
+                    className={`flex items-center justify-between gap-3 rounded-[20px] px-4 py-[15px] text-left ${
+                      on
+                        ? dryer
+                          ? "border-[1.5px] border-dryer-amber/42 bg-dryer-amber/8"
+                          : "border-[1.5px] border-success/42 bg-success/8"
+                        : "border-[1.5px] border-transparent bg-navy/4"
+                    } ${m.status === "offline" ? "opacity-60" : ""}`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[15px] font-[650]">{m.name}</div>
+                      <div className="mt-0.5 text-[12px] text-navy/50">{m.subtitle}</div>
+                    </div>
+                    <span
+                      className={`flex-none rounded-xl px-2.5 py-1 text-[11.5px] font-[650] ${optionStatusClass(m.status, dryer)}`}
+                    >
+                      {floorStatusLabel(m.status)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </SheetScroll>
         </Sheet>
       </Overlay>
 
@@ -476,12 +499,7 @@ export function TicketDetailScreen() {
   const t = ticket;
   const seen = t ? ticketSeen(t) : false;
   if (loading && !t) {
-    return (
-      <Phone variant="compact">
-        <ProtoHeader title="Ticket" backHref="/tickets" />
-        <WhiteSheet className="mt-4 p-5 text-[14px] text-navy/45">Loading…</WhiteSheet>
-      </Phone>
-    );
+    return <TicketDetailSkeleton />;
   }
   if (!t) {
     return (

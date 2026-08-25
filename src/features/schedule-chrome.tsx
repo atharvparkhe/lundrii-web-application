@@ -1,6 +1,6 @@
 "use client";
 
-import { Overlay, Sheet } from "@/components/ui";
+import { Overlay, Sheet, SheetScroll } from "@/components/ui";
 import type { MockDay } from "@/lib/days";
 import { machineFloor } from "@/lib/format";
 import type { Machine, MachineKind } from "@/lib/types";
@@ -145,21 +145,25 @@ export function FloorPicker({
   return (
     <Overlay open={open} onClose={onClose}>
       <Sheet>
-        <div className="text-[20px] font-bold tracking-[-0.02em]">Choose a machine</div>
-        <p className="mt-1.5 text-[13px] leading-snug text-navy/50">
-          {hostelName} · only machines in this hostel.
-        </p>
-        <div className="mt-4 flex flex-col gap-[9px]">
-          {machines.map((m) => (
-            <FloorRow
-              key={m.id}
-              machine={m}
-              kind={kind}
-              selected={m.id === selectedId}
-              onClick={() => onPick(m)}
-            />
-          ))}
+        <div className="shrink-0">
+          <div className="text-[20px] font-bold tracking-[-0.02em]">Choose a machine</div>
+          <p className="mt-1.5 text-[13px] leading-snug text-navy/50">
+            {hostelName} · only machines in this hostel.
+          </p>
         </div>
+        <SheetScroll className="mt-4">
+          <div className="flex flex-col gap-[9px] pb-1">
+            {machines.map((m) => (
+              <FloorRow
+                key={m.id}
+                machine={m}
+                kind={kind}
+                selected={m.id === selectedId}
+                onClick={() => onPick(m)}
+              />
+            ))}
+          </div>
+        </SheetScroll>
       </Sheet>
     </Overlay>
   );

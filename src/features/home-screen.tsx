@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { HomeSkeleton } from "@/components/skeleton";
 import {
   FieldButton,
   GlassCard,
@@ -10,12 +11,30 @@ import {
   Overlay,
   Phone,
   Sheet,
+  SheetScroll,
   WhiteSheet,
 } from "@/components/ui";
 import { initials, kindLabel } from "@/lib/format";
 import { shortDate, istHour, istHourLabel, istMinutesOfDay } from "@/lib/live";
-import type { Machine } from "@/lib/types";
+import type { Hostel, Machine } from "@/lib/types";
 import { useLundrii } from "@/store/lundrii-store";
+
+/** Hostel 1, 2, … 9A, 9C, 10 — not lexicographic "Hostel 10" before "Hostel 2". */
+function compareHostelNames(a: Hostel, b: Hostel): number {
+  const parse = (name: string) => {
+    const m = name.match(/(\d+)([A-Za-z]*)\s*$/);
+    return {
+      n: m ? Number(m[1]) : Number.POSITIVE_INFINITY,
+      suffix: m?.[2]?.toUpperCase() ?? "",
+      raw: name,
+    };
+  };
+  const left = parse(a.name);
+  const right = parse(b.name);
+  if (left.n !== right.n) return left.n - right.n;
+  if (left.suffix !== right.suffix) return left.suffix.localeCompare(right.suffix);
+  return left.raw.localeCompare(right.raw);
+}
 
 export function HostelSwitcher({
   open,
@@ -25,36 +44,45 @@ export function HostelSwitcher({
   onClose: () => void;
 }) {
   const app = useLundrii();
+  const hostels = [...app.hostels].sort(compareHostelNames);
   return (
     <Overlay open={open} onClose={onClose}>
       <Sheet>
-        <div className="text-[18px] font-bold">Switch hostel</div>
-        <p className="mt-1 text-[12.5px] text-navy/50">
-          You can book machines in any hostel you&apos;re allowed to use.
-        </p>
-        <div className="mt-3 flex flex-col gap-2">
-          {app.hostels.map((h) => (
-            <button
-              key={h.id}
-              type="button"
-              onClick={() => {
-                app.setHostel(h.id);
-                onClose();
-              }}
-              className={`rounded-[18px] px-4 py-3.5 text-left ${
-                h.id === app.selectedHostelId
-                  ? "border-[1.5px] border-success/40 bg-success/8"
-                  : "bg-navy/4"
-              }`}
-            >
-              <div className="text-[15px] font-semibold">{h.name}</div>
-              <div className="text-[12px] text-navy/45">
-                {h.isHome ? "Home hostel" : "Eligible"}
-              </div>
-            </button>
-          ))}
+        <div className="shrink-0">
+          <div className="text-[18px] font-bold">Switch hostel</div>
+          <p className="mt-1 text-[12.5px] text-navy/50">
+            You can book machines in any hostel you&apos;re allowed to use.
+          </p>
         </div>
-        <FieldButton variant="soft" className="mt-3 h-[52px] w-full rounded-[26px]" onClick={onClose}>
+        <SheetScroll className="mt-3">
+          <div className="flex flex-col gap-2 pb-1">
+            {hostels.map((h) => (
+              <button
+                key={h.id}
+                type="button"
+                onClick={() => {
+                  app.setHostel(h.id);
+                  onClose();
+                }}
+                className={`rounded-[18px] px-4 py-3.5 text-left ${
+                  h.id === app.selectedHostelId
+                    ? "border-[1.5px] border-success/40 bg-success/8"
+                    : "bg-navy/4"
+                }`}
+              >
+                <div className="text-[15px] font-semibold">{h.name}</div>
+                <div className="text-[12px] text-navy/45">
+                  {h.isHome ? "Home hostel" : "Eligible"}
+                </div>
+              </button>
+            ))}
+          </div>
+        </SheetScroll>
+        <FieldButton
+          variant="soft"
+          className="mt-3 h-[52px] w-full shrink-0 rounded-[26px]"
+          onClick={onClose}
+        >
           Close
         </FieldButton>
       </Sheet>
@@ -66,6 +94,12 @@ export function HomeScreen() {
   const app = useLundrii();
   const router = useRouter();
   const [hostelOpen, setHostelOpen] = useState(false);
+
+  const homeReady = app.hostels.length > 0 || app.machines.length > 0;
+  if (app.loading && !homeReady) {
+    return <HomeSkeleton />;
+  }
+
   const freeWashers = app.getMachines().filter((m) => m.kind === "washer" && m.status === "free");
   const upcoming = app.upcoming.slice(0, 2);
   const incomingCount = app.pendingIncomingExchangeCount;

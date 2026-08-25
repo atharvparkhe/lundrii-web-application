@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IconDryerMini, IconSwipeArrow } from "@/components/icons";
+import { ConfirmSkeleton } from "@/components/skeleton";
 import {
   BackChip,
   CheckCircle,
@@ -17,8 +18,8 @@ import { clampDayIdx } from "@/lib/days";
 import { liveDays } from "@/lib/live";
 import { initials, kindLabel, padHour, timeRange } from "@/lib/format";
 import { useLundrii } from "@/store/lundrii-store";
+import { ConfirmDryerPicker } from "./confirm-dryer-picker";
 
-const DRYER_NAME = "Ground Floor · B Wing";
 /** Knob width plus the 4px it insets from either end of the track. */
 const KNOB_SPAN = 70;
 
@@ -42,6 +43,10 @@ export function ConfirmScreen() {
   const machine = app.machineById(machineId);
   const isDryer = machine?.kind === "dryer";
   const [addDryer, setAddDryer] = useState(false);
+  const [selectedDryerId, setSelectedDryerId] = useState<string | null>(null);
+  const [selectedDryerHour, setSelectedDryerHour] = useState<number | null>(
+    null,
+  );
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [finishing, setFinishing] = useState(false);
@@ -49,12 +54,33 @@ export function ConfirmScreen() {
   const trackRef = useRef<HTMLDivElement>(null);
   const [maxDrag, setMaxDrag] = useState(0);
   const day = liveDays()[dayIdx] ?? liveDays()[0];
-  const dryerHour = (hour + 1) % 24;
+  const selectedDryer = selectedDryerId
+    ? app.machineById(selectedDryerId)
+    : undefined;
+  const dryerHourFree =
+    selectedDryerId != null &&
+    selectedDryerHour != null &&
+    app.hasLoadedSlots(selectedDryerId, dayIdx) &&
+    app.getSlots(selectedDryerId, dayIdx).find((s) => s.hour === selectedDryerHour)
+      ?.state === "free";
+  const dryerReady =
+    addDryer &&
+    selectedDryerId != null &&
+    selectedDryerHour != null &&
+    dryerHourFree;
   const quotaAfter = Math.min(
     app.quotaLimit,
     app.quotaUsed + (isDryer ? 0 : 1),
   );
   const dragPct = maxDrag > 0 ? Math.min(1, dragX / maxDrag) : 0;
+
+  const onDryerChange = useCallback(
+    (next: { dryerId: string; hour: number }) => {
+      setSelectedDryerId(next.dryerId);
+      setSelectedDryerHour(next.hour);
+    },
+    [],
+  );
 
   // The track flexes with the column now, so the travel has to be measured.
   // A hardcoded distance overshoots the end of the track on a narrow phone
@@ -77,21 +103,28 @@ export function ConfirmScreen() {
       app.showToast(block.body, "warn");
       return;
     }
+    const willAddDryer = !isDryer && dryerReady;
     setFinishing(true);
     const result = await app.createBooking({
       machineId: machine.id,
       hour,
       dayIdx,
-      addDryer: !isDryer && addDryer,
+      addDryer: willAddDryer,
+      dryerId: willAddDryer ? selectedDryerId ?? undefined : undefined,
+      dryerHour: willAddDryer ? selectedDryerHour ?? undefined : undefined,
     });
     if (!result.ok) {
       setFinishing(false);
       app.showToast(result.block.body, "warn");
       return;
     }
-    const dryerFlag = !isDryer && addDryer ? 1 : 0;
+    const dryerFlag = willAddDryer ? 1 : 0;
+    const dryerQs =
+      willAddDryer && selectedDryerId != null && selectedDryerHour != null
+        ? `&dryerId=${encodeURIComponent(selectedDryerId)}&dryerHour=${selectedDryerHour}`
+        : "";
     router.replace(
-      `/success?machineId=${machineId}&hour=${hour}&addDryer=${dryerFlag}&day=${dayIdx}`,
+      `/success?machineId=${machineId}&hour=${hour}&addDryer=${dryerFlag}&day=${dayIdx}${dryerQs}`,
     );
   }
 
@@ -122,6 +155,10 @@ export function ConfirmScreen() {
   const trackFill = isDryer
     ? "linear-gradient(90deg,rgba(224,138,22,.8),rgba(245,192,101,.95))"
     : "linear-gradient(90deg,rgba(18,164,95,.75),rgba(55,211,146,.9))";
+
+  if (machineId && !machine && app.loading) {
+    return <ConfirmSkeleton />;
+  }
 
   return (
     <Phone variant={isDryer ? "dryer" : "field"}>
@@ -159,7 +196,15 @@ export function ConfirmScreen() {
           <>
             <button
               type="button"
-              onClick={() => setAddDryer((v) => !v)}
+              onClick={() => {
+                setAddDryer((v) => {
+                  if (v) {
+                    setSelectedDryerId(null);
+                    setSelectedDryerHour(null);
+                  }
+                  return !v;
+                });
+              }}
               aria-pressed={addDryer}
               className={`mx-5 mt-[11px] flex items-center gap-[13px] rounded-[24px] border-[1.5px] px-[17px] py-[15px] text-left transition-colors ${
                 addDryer
@@ -171,12 +216,28 @@ export function ConfirmScreen() {
                 <div className="text-[14.5px] font-[650]">Add the dryer right after</div>
                 <div className="mt-[3px] text-[12.5px] text-white/60">
                   {addDryer
-                    ? `${DRYER_NAME} · ${padHour(dryerHour)}:00`
+                    ? selectedDryer && selectedDryerHour != null && dryerHourFree
+                      ? `${selectedDryer.name} · ${padHour(selectedDryerHour)}:00`
+                      : selectedDryer
+                        ? `${selectedDryer.name} · pick a free time`
+                        : "Pick a dryer and time"
                     : "Skipped — washer only"}
                 </div>
               </div>
               <ToggleIndicator on={addDryer} />
             </button>
+            {addDryer && machine ? (
+              <div className="mx-5">
+                <ConfirmDryerPicker
+                  washer={machine}
+                  dayIdx={dayIdx}
+                  washerHour={hour}
+                  selectedDryerId={selectedDryerId}
+                  selectedHour={selectedDryerHour}
+                  onChange={onDryerChange}
+                />
+              </div>
+            ) : null}
             <p className="px-6 pt-[9px] text-[11.5px] leading-[1.45] text-white/45">
               Two separate bookings. Dryers don&apos;t count against your washer quota.
             </p>
@@ -251,8 +312,30 @@ export function DryerScreen() {
   const hour = Number.parseInt(q.get("hour") ?? "13", 10) || 13;
   const dayIdx = clampDayIdx(q.get("day"));
   const machine = app.machineById(machineId);
-  const dryerHour = (hour + 1) % 24;
+  const [selectedDryerId, setSelectedDryerId] = useState<string | null>(null);
+  const [selectedDryerHour, setSelectedDryerHour] = useState<number | null>(
+    null,
+  );
   const [finishing, setFinishing] = useState(false);
+  const selectedDryer = selectedDryerId
+    ? app.machineById(selectedDryerId)
+    : undefined;
+  const dryerHourFree =
+    selectedDryerId != null &&
+    selectedDryerHour != null &&
+    app.hasLoadedSlots(selectedDryerId, dayIdx) &&
+    app.getSlots(selectedDryerId, dayIdx).find((s) => s.hour === selectedDryerHour)
+      ?.state === "free";
+  const dryerReady =
+    selectedDryerId != null && selectedDryerHour != null && dryerHourFree;
+
+  const onDryerChange = useCallback(
+    (next: { dryerId: string; hour: number }) => {
+      setSelectedDryerId(next.dryerId);
+      setSelectedDryerHour(next.hour);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (machine?.kind === "dryer" && !finishing) {
@@ -269,21 +352,33 @@ export function DryerScreen() {
       return;
     }
     if (!machine) return;
+    const willAddDryer =
+      machine.kind === "washer" && addDryer && dryerReady;
+    if (machine.kind === "washer" && addDryer && !dryerReady) {
+      app.showToast("Pick a dryer and a free time first.", "warn");
+      return;
+    }
     setFinishing(true);
     const result = await app.createBooking({
       machineId: machine.id,
       hour,
       dayIdx,
-      addDryer: machine.kind === "washer" && addDryer,
+      addDryer: willAddDryer,
+      dryerId: willAddDryer ? selectedDryerId ?? undefined : undefined,
+      dryerHour: willAddDryer ? selectedDryerHour ?? undefined : undefined,
     });
     if (!result.ok) {
       setFinishing(false);
       app.showToast(result.block.body, "warn");
       return;
     }
-    const dryerFlag = machine.kind === "washer" && addDryer ? 1 : 0;
+    const dryerFlag = willAddDryer ? 1 : 0;
+    const dryerQs =
+      willAddDryer && selectedDryerId != null && selectedDryerHour != null
+        ? `&dryerId=${encodeURIComponent(selectedDryerId)}&dryerHour=${selectedDryerHour}`
+        : "";
     router.replace(
-      `/success?machineId=${machineId}&hour=${hour}&addDryer=${dryerFlag}&day=${dayIdx}`,
+      `/success?machineId=${machineId}&hour=${hour}&addDryer=${dryerFlag}&day=${dayIdx}${dryerQs}`,
     );
   }
 
@@ -323,18 +418,38 @@ export function DryerScreen() {
                 </div>
               </div>
             </div>
-            <div className="mt-2 rounded-[20px] border-[1.5px] border-dryer-amber bg-dryer-amber/9 p-3.5">
-              <div className="flex items-center gap-3">
-                <HourChip hour={dryerHour} bg="#E08A16" fg="#fff" />
-                <div className="min-w-0 flex-1">
-                  <div className="text-[14.5px] font-semibold">{DRYER_NAME}</div>
-                  <div className="text-[12px] text-dryer-ink">Starts right after your wash · free</div>
+            {machine && machine.kind === "washer" ? (
+              <ConfirmDryerPicker
+                washer={machine}
+                dayIdx={dayIdx}
+                washerHour={hour}
+                selectedDryerId={selectedDryerId}
+                selectedHour={selectedDryerHour}
+                onChange={onDryerChange}
+              />
+            ) : null}
+            {selectedDryer && selectedDryerHour != null && dryerHourFree ? (
+              <div className="mt-2 rounded-[20px] border-[1.5px] border-dryer-amber bg-dryer-amber/9 p-3.5">
+                <div className="flex items-center gap-3">
+                  <HourChip hour={selectedDryerHour} bg="#E08A16" fg="#fff" />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[14.5px] font-semibold">
+                      {selectedDryer.name}
+                    </div>
+                    <div className="text-[12px] text-dryer-ink">
+                      {timeRange(selectedDryerHour)} · selected
+                    </div>
+                  </div>
+                  <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-dryer-amber text-[12px] text-white">
+                    ✓
+                  </span>
                 </div>
-                <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-dryer-amber text-[12px] text-white">
-                  ✓
-                </span>
               </div>
-            </div>
+            ) : (
+              <p className="mt-2 text-[12px] leading-relaxed text-navy/50">
+                Choose a dryer and a free time above.
+              </p>
+            )}
             <p className="mt-2 text-[11.5px] leading-relaxed text-dryer-ink">
               Dryers run on their own colour and don&apos;t count against your 3-wash weekly quota.
             </p>
@@ -342,7 +457,12 @@ export function DryerScreen() {
               <FieldButton variant="soft" className="h-[52px] rounded-[26px]" onClick={() => finish(false)}>
                 Skip
               </FieldButton>
-              <FieldButton variant="dryer" className="h-[52px] flex-1 rounded-[26px]" onClick={() => finish(true)}>
+              <FieldButton
+                variant="dryer"
+                className="h-[52px] flex-1 rounded-[26px]"
+                onClick={() => finish(true)}
+                disabled={!dryerReady}
+              >
                 Book both
               </FieldButton>
             </div>
@@ -360,9 +480,18 @@ export function SuccessScreen() {
   const hour = Number.parseInt(q.get("hour") ?? "13", 10) || 13;
   const addDryer = q.get("addDryer") === "1";
   const dayIdx = clampDayIdx(q.get("day"));
+  const dryerIdParam = q.get("dryerId");
+  const dryerHourParam = q.get("dryerHour");
+  const dryerHourParsed = dryerHourParam
+    ? Number.parseInt(dryerHourParam, 10)
+    : NaN;
   const machine = app.machineById(machineId);
   const isDryer = machine?.kind === "dryer";
   const name = machine?.name ?? "3rd Floor · A Wing";
+  const pairedDryer = dryerIdParam ? app.machineById(dryerIdParam) : undefined;
+  const pairedHour = Number.isFinite(dryerHourParsed)
+    ? dryerHourParsed
+    : (hour + 1) % 24;
   const day = liveDays()[dayIdx] ?? liveDays()[0];
   const items = useMemo(() => {
     const list = [
@@ -375,14 +504,14 @@ export function SuccessScreen() {
     ];
     if (!isDryer && addDryer) {
       list.push({
-        hour: (hour + 1) % 24,
-        machine: DRYER_NAME,
-        sub: `Dryer · ${timeRange((hour + 1) % 24)}`,
+        hour: pairedHour,
+        machine: pairedDryer?.name ?? "Dryer",
+        sub: `Dryer · ${timeRange(pairedHour)}`,
         isDryer: true,
       });
     }
     return list;
-  }, [hour, name, isDryer, addDryer]);
+  }, [hour, name, isDryer, addDryer, pairedHour, pairedDryer?.name]);
 
   return (
     <Phone variant="success">
