@@ -21,6 +21,7 @@ import {
   setUnauthorizedHandler,
   type MeDto,
 } from "@/lib/api";
+import { mapAuthError, type AuthFail } from "@/lib/auth-redirect";
 import {
   isPendingExchange,
   liveDays,
@@ -38,10 +39,12 @@ import {
   blockFrom,
   startsAtFor,
   swapDoneFromIncoming,
+  exchangeFailedFromIncoming,
   type LiveDay,
 } from "@/lib/live";
 import { bookingDayLabel, normalizeDayLabel } from "@/lib/days";
 import { timeLabel } from "@/lib/format";
+import { pickPairedDryer, recommendedDryerHour } from "@/lib/pairing";
 import {
   checkBookingRules,
   demoBlock,
@@ -62,6 +65,7 @@ import type {
   Slot,
   StudentProfile,
   SwapDoneResult,
+  ExchangeFailedResult,
   Ticket,
   ToastKind,
   ToastMessage,
@@ -127,6 +131,7 @@ type State = {
   nextId: number;
   toast: ToastMessage | null;
   lastSwapDone: SwapDoneResult | null;
+  lastExchangeFailed: ExchangeFailedResult | null;
   lastRaisedTicket: Ticket | null;
   /** True once the signed-in student API has answered. */
   live: boolean;
@@ -211,6 +216,7 @@ function initialState(): State {
     nextId: 2000,
     toast: null,
     lastSwapDone: clone(seed.swapDone) as SwapDoneResult,
+    lastExchangeFailed: null,
     lastRaisedTicket: null,
     live: false,
     loading: false,
@@ -331,6 +337,7 @@ export type LundriiStore = {
   quotaLeft: number;
   toast: ToastMessage | null;
   lastSwapDone: SwapDoneResult | null;
+  lastExchangeFailed: ExchangeFailedResult | null;
   lastRaisedTicket: Ticket | null;
   rejectPresets: typeof seed.rejectPresets;
   ticketCompose: typeof seed.ticketCompose;
@@ -352,11 +359,11 @@ export type LundriiStore = {
   signIn: (
     email: string,
     password: string,
-  ) => Promise<{ ok: true } | { ok: false; error: string }>;
+  ) => Promise<{ ok: true } | AuthFail>;
   signInWithOtp: (
     email: string,
     otp: string,
-  ) => Promise<{ ok: true } | { ok: false; error: string }>;
+  ) => Promise<{ ok: true } | AuthFail>;
   signUp: (input: {
     name: string;
     email: string;
@@ -364,7 +371,7 @@ export type LundriiStore = {
     phone: string;
     hostelId: string;
     whatsappOptIn?: boolean;
-  }) => Promise<{ ok: true } | { ok: false; error: string }>;
+  }) => Promise<{ ok: true } | AuthFail>;
   signOut: () => void;
   setPending: (pending: PendingIntent | null) => void;
   setDemoMode: (mode: DemoMode) => void;
@@ -386,6 +393,8 @@ export type LundriiStore = {
     hour: number;
     dayIdx: number;
     addDryer?: boolean;
+    dryerId?: string;
+    dryerHour?: number;
   }) => Promise<{ ok: true; booking: Booking } | { ok: false; block: RuleBlock }>;
   cancelBooking: (id: string) => Promise<void>;
   moveBooking: (bookingId: string, option: MoveOption) => Promise<boolean>;
@@ -744,6 +753,7 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
     quotaLeft: Math.max(0, state.quotaLimit - state.quotaUsed),
     toast: state.toast,
     lastSwapDone: state.lastSwapDone,
+    lastExchangeFailed: state.lastExchangeFailed,
     lastRaisedTicket: state.lastRaisedTicket,
     rejectPresets: seed.rejectPresets,
     ticketCompose: seed.ticketCompose,
@@ -773,9 +783,7 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
         await loadHome();
         return { ok: true };
       } catch (err) {
-        const message =
-          err instanceof ApiError ? err.message : "Couldn't sign in. Try again.";
-        return { ok: false, error: message };
+        return mapAuthError(err, "Couldn't sign in. Try again.");
       }
     },
     signInWithOtp: async (email, otp) => {
@@ -792,9 +800,7 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
         await loadHome();
         return { ok: true };
       } catch (err) {
-        const message =
-          err instanceof ApiError ? err.message : "That code didn't work.";
-        return { ok: false, error: message };
+        return mapAuthError(err, "That code didn't work.");
       }
     },
     signUp: async (input) => {
@@ -813,9 +819,7 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
         });
         return { ok: true };
       } catch (err) {
-        const message =
-          err instanceof ApiError ? err.message : "Couldn't create the account.";
-        return { ok: false, error: message };
+        return mapAuthError(err, "Couldn't create the account.");
       }
     },
     signOut: () => {
@@ -925,13 +929,16 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
       ];
       // The washer+dryer pass is two independent claims in one request.
       if (input.addDryer && kind === "washer") {
-        const dryer = state.machines.find(
-          (m) => m.kind === "dryer" && m.status !== "offline",
-        );
+        const dryer = input.dryerId
+          ? state.machines.find((m) => m.id === input.dryerId && m.kind === "dryer")
+          : pickPairedDryer(state.machines, machine);
         if (dryer) {
           items.push({
             machineId: dryer.id,
-            startsAt: startsAtFor(day.date, (input.hour + 1) % 24),
+            startsAt: startsAtFor(
+              day.date,
+              input.dryerHour ?? recommendedDryerHour(input.hour),
+            ),
           });
         }
       }
@@ -1049,10 +1056,42 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
     sentById: (id) => sentExchanges.find((s) => s.id === id),
     approveExchange: async (id) => {
       const request = state.exchanges.find((e) => e.id === id);
-      if (!request) return { ok: false, reason: "Request gone" };
+      if (!request) {
+        dispatch({
+          type: "setState",
+          patch: {
+            lastExchangeFailed: {
+              kind: "request",
+              peerName: "",
+              headline: "The slot couldn't be handed over",
+              body: "This request is no longer here.",
+            },
+          },
+        });
+        return { ok: false, reason: "Request gone" };
+      }
       if (getAccess()) {
+        const fallbackHeadline =
+          request.kind === "swap"
+            ? "The swap couldn't go through"
+            : "The slot couldn't be handed over";
         try {
-          await api.exchanges.approve(id);
+          const result = await api.exchanges.approve(id);
+          const status = (result.status || "").toLowerCase();
+          if (status === "failed" || status === "expired") {
+            const failed = exchangeFailedFromIncoming(
+              request,
+              result.failureReason,
+            );
+            dispatch({
+              type: "setState",
+              patch: { lastExchangeFailed: failed },
+            });
+            return {
+              ok: false,
+              reason: result.failureReason || failed.headline,
+            };
+          }
           if (request.kind === "swap") {
             dispatch({
               type: "setState",
@@ -1064,8 +1103,14 @@ export function LundriiProvider({ children }: { children: ReactNode }) {
           return { ok: true };
         } catch (err) {
           const reason =
-            err instanceof ApiError ? err.message : "The swap couldn't go through.";
-          return { ok: false, reason };
+            err instanceof ApiError ? err.message : fallbackHeadline;
+          dispatch({
+            type: "setState",
+            patch: {
+              lastExchangeFailed: exchangeFailedFromIncoming(request, reason),
+            },
+          });
+          return { ok: false, reason: reason || fallbackHeadline };
         }
       }
       let upcoming = [...state.upcoming];

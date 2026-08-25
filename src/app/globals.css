@@ -324,6 +324,67 @@
   animation: nudge 2.4s ease-in-out infinite;
 }
 
+@keyframes authEnterForward {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes authEnterBack {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes authExit {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+}
+
+@keyframes staggerIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.anim-auth-enter-forward {
+  animation: authEnterForward 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.anim-auth-enter-back {
+  animation: authEnterBack 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.anim-auth-exit {
+  animation: authExit 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.anim-stagger-in {
+  animation: staggerIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+
 input[type="file"] {
   font-size: 13px;
 }

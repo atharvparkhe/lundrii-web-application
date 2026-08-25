@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   useEffect,
+  useState,
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
   type ReactNode,
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from "react";
+import { createPortal } from "react-dom";
 import { IconBack, IconCheck } from "./icons";
 import { useLundrii } from "@/store/lundrii-store";
 
@@ -17,10 +19,12 @@ export function Phone({
   children,
   variant = "field",
   className = "",
+  exiting = false,
 }: {
   children: ReactNode;
   variant?: "field" | "compact" | "dryer" | "suspended" | "success";
   className?: string;
+  exiting?: boolean;
 }) {
   const cls =
     variant === "dryer"
@@ -34,7 +38,9 @@ export function Phone({
             : "field-gradient";
   return (
     <div className={`app-surface ${cls}`}>
-      <div className={`phone-screen flex flex-col anim-scr-in ${className}`}>
+      <div
+        className={`phone-screen flex flex-col anim-scr-in${exiting ? " anim-auth-exit" : ""} ${className}`}
+      >
         {children}
       </div>
     </div>
@@ -407,27 +413,52 @@ export function Overlay({
   onClose?: () => void;
   children: ReactNode;
 }) {
+  const [host, setHost] = useState<Element | null>(null);
+
+  useEffect(() => {
+    setHost(document.querySelector(".app-frame") ?? document.body);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
-    const prev = document.body.style.overflow;
+    const prevBody = document.body.style.overflow;
+    const screens = Array.from(
+      document.querySelectorAll<HTMLElement>(".phone-screen"),
+    );
+    const prevScreens = screens.map((el) => el.style.overflow);
     document.body.style.overflow = "hidden";
+    screens.forEach((el) => {
+      el.style.overflow = "hidden";
+    });
     return () => {
-      document.body.style.overflow = prev;
+      document.body.style.overflow = prevBody;
+      screens.forEach((el, i) => {
+        el.style.overflow = prevScreens[i] ?? "";
+      });
     };
   }, [open]);
-  if (!open) return null;
-  return (
-    <div className="absolute inset-0 z-50 flex items-end justify-center">
+
+  if (!open || !host) return null;
+
+  // Portal + fixed: sheets must sit on the viewport, not inside .phone-screen
+  // (that column scrolls, so absolute overlays drift to the top with the page).
+  return createPortal(
+    <div className="app-column-inset fixed inset-y-0 z-50 flex items-end justify-center overflow-hidden">
       <button
         type="button"
         aria-label="Close"
         className="absolute inset-0 bg-[rgba(3,10,30,.55)] backdrop-blur-[2px] animate-[fadeIn_.22s_ease]"
         onClick={onClose}
       />
-      <div className="pointer-events-none relative z-10 w-full p-2.5">
-        <div className="pointer-events-auto w-full anim-sheet-up">{children}</div>
+      {/* Cap height so tall sheets (hostel list, machine picker) scroll inside
+          the sheet instead of spilling past the phone viewport. */}
+      <div className="pointer-events-none relative z-10 flex max-h-full w-full items-end p-2.5 pb-[calc(0.625rem+var(--safe-bottom))]">
+        <div className="pointer-events-auto max-h-full w-full anim-sheet-up">
+          {children}
+        </div>
       </div>
-    </div>
+    </div>,
+    host,
   );
 }
 
@@ -440,9 +471,27 @@ export function Sheet({
 }) {
   return (
     <div
-      className={`rounded-[36px] border border-white/70 bg-white/94 p-[22px] pb-[26px] text-navy shadow-[0_-10px_50px_rgba(2,10,34,0.35)] backdrop-blur-[34px] backdrop-saturate-[180%] ${className}`}
+      className={`flex max-h-[min(92dvh,100%)] flex-col overflow-hidden rounded-[36px] border border-white/70 bg-white/94 px-[22px] pb-[26px] pt-[22px] text-navy shadow-[0_-10px_50px_rgba(2,10,34,0.35)] backdrop-blur-[34px] backdrop-saturate-[180%] ${className}`}
     >
-      <div className="mx-auto mb-[18px] h-1 w-[38px] rounded-sm bg-navy/18" />
+      <div className="mx-auto mb-[18px] h-1 w-[38px] shrink-0 rounded-sm bg-navy/18" />
+      {children}
+    </div>
+  );
+}
+
+/** Scroll region for long option lists inside a Sheet (hostels, machines). */
+export function SheetScroll({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`-mx-1 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 [scrollbar-width:thin] ${className}`}
+      style={{ WebkitOverflowScrolling: "touch" }}
+    >
       {children}
     </div>
   );

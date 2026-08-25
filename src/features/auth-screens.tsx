@@ -17,6 +17,7 @@ import {
 } from "@/components/ui";
 import { isAllowedDomain, rejectionLine } from "@/lib/domain";
 import { padHour } from "@/lib/format";
+import { authRedirect, mapAuthError } from "@/lib/auth-redirect";
 import { ApiError, api, getAccess, type SignupHostelDto } from "@/lib/api";
 import { useLundrii } from "@/store/lundrii-store";
 
@@ -40,6 +41,7 @@ function strengthBars(password: string) {
 export function SignInScreen() {
   const app = useLundrii();
   const router = useRouter();
+  const search = useSearchParams();
   const [email, setEmail] = useState(app.auth.email);
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
@@ -49,7 +51,11 @@ export function SignInScreen() {
   const [obscure, setObscure] = useState(true);
   const [showDomainError, setShowDomainError] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
+  const [redirectNotice, setRedirectNotice] = useState<string | null>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const domainOk = isAllowedDomain(email);
+  const showExistsBanner = search.get("reason") === "exists" && !bannerDismissed;
 
   useEffect(() => {
     if (otpCooldown <= 0) return;
@@ -80,6 +86,15 @@ export function SignInScreen() {
     router.push(destination);
   }
 
+  async function handleSignupRedirect(notice: string, message: string) {
+    app.rememberDraft({ email: email.trim() });
+    setRedirectNotice(notice);
+    app.showToast(message, "warn");
+    await authRedirect(router, "/auth/sign-up?reason=no-account", {
+      onBeforeNavigate: () => setRedirecting(true),
+    });
+  }
+
   async function submitPassword() {
     app.rememberDraft({ email: email.trim() });
     if (!domainOk) {
@@ -97,6 +112,13 @@ export function SignInScreen() {
     const res = await app.signIn(email.trim(), password);
     setBusy(false);
     if (!res.ok) {
+      if (res.redirectTo === "signup") {
+        await handleSignupRedirect(
+          "No account for this email. Taking you to sign up…",
+          res.error,
+        );
+        return;
+      }
       app.showToast(res.error, "danger");
       return;
     }
@@ -119,10 +141,15 @@ export function SignInScreen() {
       setOtpCooldown(60);
       app.showToast("Sign-in code sent. Check your inbox.");
     } catch (err) {
-      app.showToast(
-        err instanceof ApiError ? err.message : "Couldn't send a code.",
-        "danger",
-      );
+      const fail = mapAuthError(err, "Couldn't send a code.");
+      if (fail.redirectTo === "signup") {
+        await handleSignupRedirect(
+          "No account for this email. Taking you to sign up…",
+          fail.error,
+        );
+        return;
+      }
+      app.showToast(fail.error, "danger");
     } finally {
       setBusy(false);
     }
@@ -146,12 +173,20 @@ export function SignInScreen() {
   }
 
   return (
-    <Phone>
+    <Phone exiting={redirecting}>
       <div className="relative min-h-full">
         <div className="px-7 pt-[104px]">
           <Wordmark />
           <p className="mt-2 text-[14.5px] leading-[1.5] text-white/60">{subtitle}</p>
         </div>
+        {showExistsBanner ? (
+          <div className="mx-6 mt-6 anim-rise rounded-[24px] border border-white/22 bg-white/14 px-[18px] py-4 backdrop-blur-[24px]">
+            <div className="text-[13.5px] font-[650]">You already have an account</div>
+            <div className="mt-0.5 text-[12.5px] leading-[1.4] text-white/60">
+              Sign in below with your institute email.
+            </div>
+          </div>
+        ) : null}
         <div className="mt-10 flex flex-col gap-[11px] px-6">
           <AuthField
             label="INSTITUTE EMAIL"
@@ -161,6 +196,7 @@ export function SignInScreen() {
             status={showDomainError && !domainOk ? "bad" : "plain"}
             onChange={(e) => {
               setEmail(e.target.value);
+              setBannerDismissed(true);
               if (isAllowedDomain(e.target.value)) setShowDomainError(false);
               app.rememberDraft({ email: e.target.value.trim() });
             }}
@@ -178,7 +214,10 @@ export function SignInScreen() {
                 value={password}
                 autoComplete="current-password"
                 status="focus"
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setBannerDismissed(true);
+                }}
                 trailing={
                   <button
                     type="button"
@@ -204,7 +243,10 @@ export function SignInScreen() {
                 inputMode="numeric"
                 maxLength={6}
                 placeholder="000000"
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                onChange={(e) => {
+                  setOtp(e.target.value.replace(/\D/g, "").slice(0, 6));
+                  setBannerDismissed(true);
+                }}
               />
               <button
                 type="button"
@@ -220,6 +262,11 @@ export function SignInScreen() {
               </button>
             </>
           )}
+          {redirectNotice ? (
+            <div className="anim-rise rounded-[24px] border border-white/22 bg-white/14 px-[18px] py-4 backdrop-blur-[24px]">
+              {redirectNotice}
+            </div>
+          ) : null}
         </div>
         <FieldButton
           variant="white"
@@ -260,6 +307,7 @@ export function SignInScreen() {
 export function SignUpScreen() {
   const app = useLundrii();
   const router = useRouter();
+  const search = useSearchParams();
   const [name, setName] = useState(app.auth.name);
   const [email, setEmail] = useState(app.auth.email);
   const [phone, setPhone] = useState(app.auth.phone);
@@ -268,9 +316,13 @@ export function SignUpScreen() {
   const [hostelId, setHostelId] = useState("");
   const [hostels, setHostels] = useState<SignupHostelDto[]>([]);
   const [busy, setBusy] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
+  const [redirectNotice, setRedirectNotice] = useState<string | null>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const domainOk = isAllowedDomain(email);
   const emailStatus = email.trim() ? (domainOk ? "ok" : "bad") : "plain";
   const strength = useMemo(() => strengthBars(password), [password]);
+  const showNoAccountBanner = search.get("reason") === "no-account" && !bannerDismissed;
 
   useEffect(() => {
     let cancelled = false;
@@ -339,6 +391,14 @@ export function SignUpScreen() {
     });
     setBusy(false);
     if (!res.ok) {
+      if (res.redirectTo === "login") {
+        setRedirectNotice("You already have an account. Taking you to sign in…");
+        app.showToast(res.error, "warn");
+        await authRedirect(router, "/auth/sign-in?reason=exists", {
+          onBeforeNavigate: () => setRedirecting(true),
+        });
+        return;
+      }
       app.showToast(res.error, "danger");
       return;
     }
@@ -347,7 +407,7 @@ export function SignUpScreen() {
   }
 
   return (
-    <Phone variant="compact">
+    <Phone variant="compact" exiting={redirecting}>
       <div className="flex min-h-full flex-col">
       <div className="flex items-center justify-between px-5 pt-[58px]">
         <BackChip href="/auth/sign-in" />
@@ -361,14 +421,33 @@ export function SignUpScreen() {
         <p className="mt-[7px] text-[12.5px] leading-relaxed text-navy/50">
           Pick the hostel you live in. You can book machines in any hostel you are allowed to use.
         </p>
+        {showNoAccountBanner ? (
+          <div className="mt-4 anim-rise rounded-[18px] border border-navy/12 bg-navy/4 px-4 py-3">
+            <div className="text-[13px] font-semibold text-navy">No account for that email yet</div>
+            <div className="mt-0.5 text-[12px] leading-snug text-navy/55">
+              Create one below — your email is already filled in.
+            </div>
+          </div>
+        ) : null}
+        {redirectNotice ? (
+          <div className="mt-4 anim-rise rounded-[18px] border border-navy/12 bg-navy/4 px-4 py-3">
+            {redirectNotice}
+          </div>
+        ) : null}
         <div className="mt-[18px] flex flex-col gap-2.5">
-          <InkField label="FULL NAME" value={name} onChange={(e) => setName(e.target.value)} />
+          <InkField label="FULL NAME" value={name} onChange={(e) => {
+            setName(e.target.value);
+            setBannerDismissed(true);
+          }} />
           <InkField
             label="INSTITUTE EMAIL"
             type="email"
             value={email}
             status={emailStatus}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setBannerDismissed(true);
+            }}
             trailing={
               email.trim() ? (
                 <span
@@ -391,13 +470,17 @@ export function SignUpScreen() {
             type="tel"
             value={phone}
             placeholder="+91 98765 43210"
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => {
+              setPhone(e.target.value);
+              setBannerDismissed(true);
+            }}
           />
           <InkSelect
             label="HOSTEL"
             value={hostelId}
             onChange={(e) => {
               setHostelId(e.target.value);
+              setBannerDismissed(true);
             }}
           >
             <option value="">Select hostel</option>
@@ -414,7 +497,10 @@ export function SignUpScreen() {
             <input
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setBannerDismissed(true);
+              }}
               className="mt-2 w-full bg-transparent text-[14.5px] font-medium text-navy outline-none"
             />
             <div className="mt-2.5 flex gap-[5px]">
